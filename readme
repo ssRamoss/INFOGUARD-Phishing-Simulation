@@ -72,8 +72,7 @@ An interactive web-based phishing and social engineering awareness training plat
 1. Go to repository Settings
 2. Navigate to "Pages"
 3. Select `main` branch as the source
-4. Your site will be available at: `https://yourusername.github.io/INFOGUARD-Phishing-Simulation/`
-
+4. Your site will be available at: https://ssramoss.github.io/INFOGUARD-Phishing-Simulation/
 ### Local Testing
 Simply open `index.html` in a modern web browser.
 
