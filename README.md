@@ -1,0 +1,105 @@
+# 🛡️ INFOGUARD Phishing Simulation Training
+
+An interactive web-based phishing and social engineering awareness training platform. Test your ability to identify safe messages, suspicious content, and phishing attempts through a realistic direct message simulation.
+
+## Features
+
+- **Interactive Training**: 10 rounds of escalating difficulty
+- **Real-world Scenarios**: Safe, suspicious, and phishing message examples
+- **Instant Feedback**: Learn why each message is what it claims to be
+- **Profile Inspection**: Check sender profiles for red flags
+- **Security Scoring**: Get rated from "Highly Vulnerable" to "Security Expert"
+- **Beautiful UI**: Modern phone interface with smooth animations
+- **Three.js Background**: Dynamic particle animation system
+
+## How to Play
+
+1. **Start the Training**: Click "Start Training" to begin
+2. **Review Messages**: Read each incoming direct message carefully
+3. **Make a Decision**: Mark each message as:
+   - ✅ **Safe**: Normal conversation
+   - ⚠️ **Suspicious**: Needs verification
+   - ❌ **Phishing**: Malicious intent
+4. **Get Feedback**: Learn the correct answer and understand the red flags
+5. **See Your Score**: Get your final security rating and review mistakes
+
+## Message Categories
+
+### Safe Messages
+- Normal greetings and casual conversation
+- No urgent requests or suspicious links
+- Standard social interactions
+
+### Suspicious Messages
+- Unsolicited shortened links
+- Emotional manipulation tactics
+- Requests that need verification
+- Account verification claims from unknown sources
+
+### Phishing Messages
+- Too-good-to-be-true offers
+- Impersonation of trusted services
+- Urgency and threats ("act now or lose access")
+- Requests for credentials or financial information
+
+## Security Ratings
+
+- 🟢 **Security Expert**: 9-10/10 (Perfect awareness)
+- 🟡 **Cautious User**: 6-8/10 (Good understanding)
+- 🔴 **At Risk**: 3-5/10 (Needs improvement)
+- 🚨 **Highly Vulnerable**: 0-2/10 (High risk)
+
+## Red Flags to Watch
+
+- ✘ Unsolicited links or shortened URLs
+- ✘ Urgent action required ("act now or lose access")
+- ✘ Spelling and grammar errors
+- ✘ Impersonation of trusted brands or services
+- ✘ Requests for sensitive information
+- ✘ New accounts with no mutual connections
+- ✘ Too-good-to-be-true offers
+
+## Technologies Used
+
+- **HTML5** - Structure
+- **CSS3** - Styling and animations
+- **JavaScript (ES6+)** - Game logic
+- **Three.js** - Particle background animation
+
+## How to Deploy
+
+### GitHub Pages
+1. Go to repository Settings
+2. Navigate to "Pages"
+3. Select `main` branch as the source
+4. Your site will be available at: `https://yourusername.github.io/INFOGUARD-Phishing-Simulation/`
+
+### Local Testing
+Simply open `index.html` in a modern web browser.
+
+## Browser Compatibility
+
+- Chrome/Edge (recommended)
+- Firefox
+- Safari
+- Any modern browser supporting ES6 modules and WebGL
+
+## Objectives
+
+- Increase awareness of social engineering tactics
+- Recognize common phishing patterns
+- Understand how attackers use psychological manipulation
+- Build confidence in identifying malicious content
+- Train employees on cybersecurity best practices
+
+## License
+
+Open source educational resource.
+
+## Support
+
+For questions or improvements, please create an issue in the repository.
+
+---
+
+**Remember**: When in doubt, verify through official channels before clicking links or providing information!
