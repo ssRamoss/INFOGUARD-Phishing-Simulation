@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>INFOGUARD-Phishing-Simulation</title>
+ <style>
+ body { margin: 0; overflow: hidden; background-color: #050505; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; user-select: none;}
+ * { box-sizing: border-box; }
+ 
+ #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none;}
+ #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; display: flex; justify-content: center; align-items: center; }
+ 
+ .screen { display: none; pointer-events: auto; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%;}
+ .screen.active { display: flex; }
+ 
+ /* Intro & Outro Screens */
+ .glass-panel { background: rgba(15, 23, 42, 0.85); padding: 40px; border-radius: 24px; text-align: center; max-width: 500px; width: 90%; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.5);}
+ h1 { margin-top: 0; color: #0ea5e9; font-size: 28px; margin-bottom: 15px;}
+ p { color: #cbd5e1; line-height: 1.6; font-size: 16px; margin-bottom: 25px;}
+ 
+ .main-btn { background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; border: none; padding: 16px 36px; font-size: 18px; border-radius: 30px; cursor: pointer; font-weight: bold; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);}
+ .main-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 20px rgba(14, 165, 233, 0.6); }
+ 
+ /* HUD */
+ .hud { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 16px; font-weight: bold; pointer-events: auto; background: rgba(15, 23, 42, 0.8); padding: 12px 24px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); z-index: 10; display: none; color: white;}
+ 
+ /* Phone Frame */
+ .phone-container { width: 375px; height: 812px; background: #fff; border-radius: 45px; border: 12px solid #111; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative; overflow: hidden; display: flex; flex-direction: column; color: #000; pointer-events: auto; transform-origin: center;}
+ 
+ .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 160px; height: 32px; background: #111; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; z-index: 10; display: flex; justify-content: center; align-items: center;}
+ .notch-camera { width: 10px; height: 10px; border-radius: 50%; background: #222; margin-right: 15px; box-shadow: inset 0 0 2px #000;}
+ .notch-speaker { width: 40px; height: 6px; border-radius: 10px; background: #222; box-shadow: inset 0 0 2px #000;}
+ 
+ .home-indicator { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 130px; height: 5px; background: #000; border-radius: 5px; z-index: 10; opacity: 0.3;}
+ 
+ /* Header */
+ .dm-header { display: flex; align-items: center; padding: 15px 15px 10px; border-bottom: 1px solid #efefef; margin-top: 32px; background: white; z-index: 5;}
+ .back-btn { font-size: 36px; line-height: 0.8; cursor: pointer; color: #262626; margin-right: 15px; margin-top: -5px;}
+ .header-profile { display: flex; align-items: center; cursor: pointer; flex: 1;}
+ .header-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; margin-right: 12px; font-size: 16px;}
+ .header-info { display: flex; flex-direction: column;}
+ .header-name { font-weight: 600; font-size: 15px; color: #262626;}
+ .header-sub { font-size: 12px; color: #8e8e8e; margin-top: 2px;}
+ .info-btn { font-size: 22px; cursor: pointer; color: #262626; padding: 5px;}
+ 
+ /* Chat Area */
+ .chat-area { flex: 1; padding: 20px 15px; overflow-y: auto; display: flex; flex-direction: column; background: #fff; scroll-behavior: smooth;}
+ .chat-area::-webkit-scrollbar { width: 0px; }
+ 
+ .timestamp { text-align: center; font-size: 12px; color: #8e8e8e; margin-bottom: 20px; font-weight: 500;}
+ 
+ .message-bubble { max-width: 75%; padding: 12px 16px; border-radius: 22px; margin-bottom: 15px; font-size: 15px; line-height: 1.4; word-wrap: break-word; animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.05);}
+ .message-received { align-self: flex-start; background: #efefef; border-bottom-left-radius: 4px; color: #262626; transform-origin: bottom left;}
+ 
+ .chat-link { color: #00376b; text-decoration: underline; cursor: pointer; word-break: break-all;}
+ 
+ /* Typing Indicator */
+ .typing { align-self: flex-start; background: #efefef; padding: 14px 18px; border-radius: 22px; border-bottom-left-radius: 4px; margin-bottom: 15px; display: none; }
+ .typing.active { display: flex; align-items: center; gap: 4px; animation: fadeIn 0.3s; }
+ .dot { width: 6px; height: 6px; background: #8e8e8e; border-radius: 50%; animation: typingAnim 1.4s infinite ease-in-out both; }
+ .dot:nth-child(1) { animation-delay: -0.32s; }
+ .dot:nth-child(2) { animation-delay: -0.16s; }
+ 
+ /* Decision Panel */
+ .decision-panel { padding: 15px; background: #fafafa; border-top: 1px solid #efefef; display: flex; justify-content: space-between; gap: 8px; padding-bottom: 25px; transition: transform 0.3s; transform: translateY(100%); position: absolute; bottom: 0; left: 0; right: 0; z-index: 15;}
+ .decision-panel.active { transform: translateY(0); }
+ .chat-bottom-spacer { height: 90px; flex-shrink: 0; }
+ 
+ .decision-btn { flex: 1; padding: 12px 0; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
+ .decision-btn:active { transform: scale(0.95); }
+ .btn-safe { background: #e6f4ea; color: #137333; }
+ .btn-safe:hover { background: #ceead6; }
+ .btn-susp { background: #fef7e0; color: #b06000; }
+ .btn-susp:hover { background: #fce8b2; }
+ .btn-phish { background: #fce8e6; color: #c5221f; }
+ .btn-phish:hover { background: #fad2cf; }
+ .btn-icon { font-size: 18px; }
+ 
+ /* Overlays */
+ .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 20; padding: 20px;}
+ .overlay.active { display: flex; animation: fadeIn 0.3s; }
+ .popup-card { background: #fff; padding: 25px; border-radius: 24px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);}
+ .popup-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;}
+ .popup-text { font-size: 15px; color: #444; margin-bottom: 24px; line-height: 1.5; text-align: left; background: #f9f9f9; padding: 15px; border-radius: 12px;}
+ .popup-text ul { padding-left: 20px; margin-top: 10px; margin-bottom: 0; color: #d93025;}
+ .popup-btn { background: #0095f6; color: #fff; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; font-size: 16px; transition: background 0.2s;}
+ .popup-btn:active { background: #007bb5; }
+ 
+ /* Profile Inspect Overlay */
+ .prof-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; padding-top: 10px;}
+ .prof-avatar { width: 80px; height: 80px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 32px; font-weight: bold; margin-bottom: 15px;}
+ .prof-name { font-weight: bold; font-size: 20px; color: #262626;}
+ .prof-username { color: #8e8e8e; font-size: 14px; margin-top: 4px;}
+ 
+ .prof-stats { display: flex; justify-content: space-around; width: 100%; padding: 15px 0; border-top: 1px solid #efefef; border-bottom: 1px solid #efefef; margin-bottom: 20px;}
+ .p-stat { display: flex; flex-direction: column; align-items: center;}
+ .p-val { font-weight: bold; font-size: 16px; color: #262626;}
+ .p-lbl { font-size: 13px; color: #8e8e8e; margin-top: 4px;}
+ 
+ .prof-bio { font-size: 14px; color: #262626; text-align: center; margin-bottom: 20px; padding: 0 10px; word-wrap: break-word;}
+ .prof-joined { font-size: 13px; color: #8e8e8e; display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 20px;}
+ 
+ /* Scorecard */
+ .score-row { display: flex; justify-content: space-around; margin: 30px 0;}
+ .score-col { background: rgba(0,0,0,0.3); padding: 15px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);}
+ .s-val { font-size: 24px; font-weight: bold; color: white;}
+ .s-lbl { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px;}
+ 
+ .badge-box { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; font-size: 20px; font-weight: bold; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.1);}
+ 
+ .mistakes-container { background: rgba(0,0,0,0.3); border-radius: 16px; padding: 20px; text-align: left; max-height: 250px; overflow-y: auto; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.05);}
+ .mistakes-title { color: #f87171; font-weight: bold; margin-bottom: 15px; font-size: 16px;}
+ .m-item { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);}
+ .m-item:last-child { border: none; padding: 0; margin: 0; }
+ .m-rnd { color: #94a3b8; font-size: 13px; font-weight: bold; margin-bottom: 4px;}
+ .m-txt { font-size: 14px; color: white; font-style: italic;}
+ 
+ /* Utilities & Animations */
+ .hidden { display: none !important; }
+ 
+ @keyframes slideIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+ @keyframes slideUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+ @keyframes typingAnim { 0%, 80%, 100% { transform: scale(0); opacity: 0.5;} 40% { transform: scale(1); opacity: 1;} }
+ @keyframes vibrateAnim { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+ @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+ 
+ .vibrate { animation: vibrateAnim 0.3s linear; }
+ 
+ /* Link Warning Specifics */
+ .warning-icon { font-size: 40px; margin-bottom: 10px;}
+ #link-warning-overlay .popup-card { border: 2px solid #d93025; }
+ </style>
+ <!-- Import Maps for Three.js -->
+ <script type="importmap">
+ {
+ "imports": {
+ "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+ "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+ }
+ }
+ </script>
+</head>
+<body>
+
+ <div id="canvas-container"></div>
+ 
+ <div id="ui-layer">
+ 
+ <div class="hud" id="hud">
+ Round <span id="hud-round">1</span>/10 &nbsp;|&nbsp; Score: <span id="hud-score">0</span>
+ </div>
+
+ <!-- Start Screen -->
+ <div id="start-screen" class="screen active">
+ <div class="glass-panel">
+ <h1>🛡️ Phishing Attack Simulation</h1>
+ <p>Learn to spot the warning signs of social engineering.</p>
+ <p style="font-size: 14px; color: #94a3b8; text-align: left;">
+ <b>Your Mission:</b> Review 10 incoming direct messages.<br><br>
+ Determine if they are:<br>
+ ✅ <b>Safe:</b> Normal conversation<br>
+ ⚠️ <b>Suspicious:</b> Needs verification<br>
+ ❌ <b>Phishing:</b> Malicious intent
+ </p>
+ <button class="main-btn" onclick="startSimulation()">Start Training</button>
+ </div>
+ </div>
+
+ <!-- Game Screen (Phone UI) -->
+ <div id="game-screen" class="screen">
+ <div class="phone-container" id="phone">
+ <div class="notch">
+ <div class="notch-camera"></div>
+ <div class="notch-speaker"></div>
+ </div>
+ 
+ <div class="dm-header">
+ <div class="back-btn">‹</div>
+ <div class="header-profile" onclick="openProfile()">
+ <div class="header-avatar" id="header-avatar"><span id="header-initial">A</span></div>
+ <div class="header-info">
+ <div class="header-name" id="header-name">Username</div>
+ <div class="header-sub">Active now</div>
+ </div>
+ </div>
+ <div class="info-btn" onclick="openProfile()">ⓘ</div>
+ </div>
+
+ <div class="chat-area" id="chat-area">
+ <div class="chat-bottom-spacer"></div>
+ </div>
+
+ <div class="typing" id="typing">
+ <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+ </div>
+
+ <div class="decision-panel" id="decision-panel">
+ <button class="decision-btn btn-safe" onclick="makeDecision('safe')">
+ <span class="btn-icon">✅</span>Safe
+ </button>
+ <button class="decision-btn btn-susp" onclick="makeDecision('suspicious')">
+ <span class="btn-icon">⚠️</span>Suspicious
+ </button>
+ <button class="decision-btn btn-phish" onclick="makeDecision('phishing')">
+ <span class="btn-icon">❌</span>Phishing
+ </button>
+ </div>
+
+ <div class="home-indicator"></div>
+
+ <!-- Feedback Overlay -->
+ <div class="overlay" id="feedback-overlay">
+ <div class="popup-card">
+ <div class="popup-title" id="fb-title">✅ Result</div>
+ <div class="popup-text" id="fb-text">Explanation...</div>
+ <button class="popup-btn" onclick="nextRoundAction()">Next Message</button>
+ </div>
+ </div>
+
+ <!-- Profile Overlay -->
+ <div class="overlay" id="profile-overlay">
+ <div class="popup-card" style="padding: 30px 20px;">
+ <div class="prof-header">
+ <div class="prof-avatar" id="prof-avatar"><span id="prof-initial">A</span></div>
+ <div class="prof-name" id="prof-name">Name</div>
+ <div class="prof-username" id="prof-username">@username</div>
+ </div>
+ <div class="prof-stats">
+ <div class="p-stat">
+ <div class="p-val" id="prof-posts">0</div>
+ <div class="p-lbl">Posts</div>
+ </div>
+ <div class="p-stat">
+ <div class="p-val" id="prof-followers">0</div>
+ <div class="p-lbl">Followers</div>
+ </div>
+ <div class="p-stat">
+ <div class="p-val" id="prof-mutuals" style="color: #0095f6;">0</div>
+ <div class="p-lbl">Mutuals</div>
+ </div>
+ </div>
+ <div class="prof-bio" id="prof-bio">Bio text...</div>
+ <div class="prof-joined">
+ 📅 <span id="prof-joined-text">Joined recently</span>
+ </div>
+ <button class="popup-btn" onclick="closeProfile()">Close</button>
+ </div>
+ </div>
+
+ <!-- Link Warning Overlay -->
+ <div class="overlay" id="link-warning-overlay">
+ <div class="popup-card">
+ <div class="warning-icon">🚨</div>
+ <div class="popup-title" style="color:#d93025; flex-direction:column; gap:0;">SECURITY BLOCK</div>
+ <div class="popup-text" style="background:#fff3f2; border: 1px solid #fad2cf;">
+ <b>Connection Terminated.</b><br><br>
+ Clicking unknown links in direct messages is a major security risk. This could have resulted in malware or stolen credentials.
+ </div>
+ <button class="popup-btn" style="background:#d93025;" onclick="closeLinkWarning()">Understood</button>
+ </div>
+ </div>
+
+ </div>
+ </div>
+
+ <!-- End Screen -->
+ <div id="end-screen" class="screen">
+ <div class="glass-panel">
+ <h1>Simulation Complete</h1>
+ <div class="badge-box" id="final-badge">🟢 Security Expert</div>
+ <div class="score-row">
+ <div class="score-col">
+ <div class="s-val" id="final-score">0/10</div>
+ <div class="s-lbl">Score</div>
+ </div>
+ <div class="s-val" style="align-self: center; color: rgba(255,255,255,0.2);">|</div>
+ <div class="score-col">
+ <div class="s-val" id="final-speed">Fast</div>
+ <div class="s-lbl">Response Time</div>
+ </div>
+ </div>
+ <div class="mistakes-container" id="mistakes-container">
+ <div class="mistakes-title">Areas for Improvement:</div>
+ <div id="mistakes-list"></div>
+ </div>
+ <button class="main-btn" onclick="startSimulation()">Restart Training</button>
+ </div>
+ </div>
+
+ </div>
+
+ <script type="module">
+ import * as THREE from 'three';
+
+ // --- Three.js Particle Background ---
+ const scene = new THREE.Scene();
+ scene.fog = new THREE.FogExp2(0x050505, 0.002);
+ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+ const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ renderer.setPixelRatio(window.devicePixelRatio);
+ document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+ const geometry = new THREE.BufferGeometry();
+ const vertices = [];
+ for (let i = 0; i < 600; i++) {
+ vertices.push(
+ (Math.random() - 0.5) * 30,
+ (Math.random() - 0.5) * 30,
+ (Math.random() - 0.5) * 30
+ );
+ }
+ geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+ const material = new THREE.PointsMaterial({ 
+ color: 0x0ea5e9, size: 0.06, transparent: true, opacity: 0.6,
+ blending: THREE.AdditiveBlending
+ });
+ const particles = new THREE.Points(geometry, material);
+ scene.add(particles);
+ camera.position.z = 10;
+
+ function animate() {
+ requestAnimationFrame(animate);
+ particles.rotation.x += 0.0003;
+ particles.rotation.y += 0.0005;
+ renderer.render(scene, camera);
+ }
+ animate();
+
+ window.addEventListener('resize', () => {
+ camera.aspect = window.innerWidth / window.innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ });
+
+ // --- Game Data ---
+ const namesList = ["Alex","Mia","Cora","Jake","Zara","Noah","Lily","Ethan","Sofia","Leo","Ava","Owen","Nora","Finn","Isla","Kai","Luna","Ryo","Maya","Sam","Jade","Cole","Ruby","Aiden","Zoe","Luca","Iris","Marco","Stella","Eli","Piper","Asher","Violet","Jasper","Sage","River","Fern","Quinn","Blake","Reese","Avery","Morgan","Skylar","Casey","Jamie","Jordan","Taylor","Riley","Cameron","Peyton","Hayden","Emery","Rowan","Aubrey","Sawyer","Dallas","Sydney","Spencer","Bailey","Addison","Parker","Logan","Dylan","Hunter","Bryce","Devon","Sloane","Paige","Kylie","Hailey"];
+
+ const safeScenarios = [
+ { text: "Hey! How are you doing? It's been a while 😊", type: "safe", explanation: "This is a normal greeting with no urgent requests, links, or suspicious behavior." },
+ { text: "Did you see the game last night? Crazy finish!", type: "safe", explanation: "Casual conversation about a recent event. Completely safe." },
+ { text: "Are you free this weekend? Want to grab coffee ☕", type: "safe", explanation: "A standard social invitation with no red flags." },
+ { text: "lol did you see that meme I tagged you in?", type: "safe", explanation: "Normal social media interaction without external links." },
+ { text: "Happy birthday! Hope you have a great day 🎉", type: "safe", explanation: "Standard celebratory message. Safe to reply." }
+ ];
+
+ const suspiciousScenarios = [
+ { text: "Hey, do you know this person? They keep messaging me: https://tinyurl.com/check123", type: "suspicious", explanation: "While possibly from a concerned friend, the link is unsolicited and the URL is non-standard. Always verify before clicking.", flags: ["Unsolicited message from an unknown contact", "Suspicious shortened URL", "Ask to engage without context"] },
+ { text: "Can you vote for my photo in this competition? http://vote-now.example", type: "suspicious", explanation: "A generic voting link is often used to harvest login credentials. Confirm with the sender through another channel.", flags: ["Generic competition link", "Asks to click an unfamiliar URL", "Could be credential harvesting"] },
+ { text: "Someone told me you said something about me? What's going on?", type: "suspicious", explanation: "This uses emotional manipulation to provoke a quick, unthinking response — a common social engineering setup.", flags: ["Emotional pressure", "Unexpected accusation", "Triggers quick response"] },
+ { text: "I lost my phone and got a new number. Can you text me back here?", type: "suspicious", explanation: "Could be real, but also a common way attackers impersonate friends to bypass security. Verify through another trusted channel first.", flags: ["New number request", "Impersonation attempt", "Needs external verification"] }
+ ];
+
+ const phishingScenarios = [
+ { text: "Hey! I found this link where you can get free concert tickets 🎟️ hurry before they run out: http://concert-freebie.example", type: "phishing", explanation: "Classic phishing: offers something too good to be true, creates false urgency, and uses a suspicious link.", flags: ["Free concert tickets", "Hurry before they run out", "Unexpected promotional offer"] },
+ { text: "Your Instagram account has been reported. Click here to verify ownership immediately or it will be deleted: http://insta-secure.example", type: "phishing", explanation: "Official support will NEVER message you via DM. This features extreme urgency and a fake support URL.", flags: ["Account has been reported", "Verify ownership immediately", "Fake support URL"] },
+ { text: "I need a quick favor 🙏 can you send me $20 via PayPal? I'll pay you back tomorrow, I'm stuck abroad", type: "phishing", explanation: "A classic 'stranded traveler' scam. The account has been compromised to ask friends for money.", flags: ["Send me $20 via PayPal", "Stuck abroad", "Promises quick repayment"] },
+ { text: "This job offer just came in for you - perfect match! Apply now before deadline: http://apply-now.example", type: "phishing", explanation: "Uses the lure of a job and a tight deadline to rush you into clicking a malicious link.", flags: ["Apply now before deadline", "Unexpected job offer", "Pressure to act fast"] }
+ ];
+
+ // --- Game State ---
+ let currentRound = 0, score = 0, mistakes = [], roundQueue = [];
+ let currentScenario = null, currentProfile = null;
+ let roundStartTime = 0, totalResponseTime = 0, usedNames = [];
+
+ function shuffleArray(array) {
+ let arr = [...array];
+ for (let i = arr.length - 1; i > 0; i--) {
+ const j = Math.floor(Math.random() * (i + 1));
+ [arr[i], arr[j]] = [arr[j], arr[i]];
+ }
+ return arr;
+ }
+
+ function generateProfile(name, isPhishing) {
+ const isNew = isPhishing && Math.random() > 0.4;
+ return {
+ name, initial: name.charAt(0),
+ username: `@${name.toLowerCase()}`,
+ color: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`,
+ followers: isNew ? Math.floor(Math.random() * 40) : Math.floor(Math.random() * 800) + 150,
+ mutuals: isPhishing ? 0 : Math.floor(Math.random() * 15) + 2,
+ joined: isNew ? "Joined this week" : `Joined ${Math.floor(Math.random() * 4) + 1} years ago`,
+ posts: isNew ? Math.floor(Math.random() * 3) : Math.floor(Math.random() * 300) + 20,
+ bio: isPhishing ? (isNew ? "FREE MONEY LINK BELOW👇" : "Hacked? Nah just living.") : "Just living life ✨ | Coffee addict ☕"
+ };
+ }
+
+ // --- Global Game Functions ---
+ window.startSimulation = function() {
+ document.getElementById('start-screen').classList.remove('active');
+ document.getElementById('end-screen').classList.remove('active');
+ document.getElementById('game-screen').classList.add('active');
+ document.getElementById('hud').style.display = 'block';
+ currentRound = 0; score = 0; mistakes = []; totalResponseTime = 0;
+ let q = [];
+ q.push(...shuffleArray(safeScenarios).slice(0, 4));
+ q.push(...shuffleArray(suspiciousScenarios).slice(0, 3));
+ q.push(...shuffleArray(phishingScenarios).slice(0, 3));
+ roundQueue = shuffleArray(q);
+ usedNames = shuffleArray(namesList).slice(0, 10);
+ playNextRound();
+ };
+
+ function playNextRound() {
+ if (currentRound >= 10) { showScorecard(); return; }
+ currentScenario = roundQueue[currentRound];
+ currentProfile = generateProfile(usedNames[currentRound], currentScenario.type === 'phishing');
+ document.getElementById('hud-round').innerText = currentRound + 1;
+ document.getElementById('hud-score').innerText = score;
+ document.getElementById('header-initial').innerText = currentProfile.initial;
+ document.getElementById('header-avatar').style.backgroundColor = currentProfile.color;
+ document.getElementById('header-name').innerText = currentProfile.name;
+ const chatArea = document.getElementById('chat-area');
+ chatArea.innerHTML = '<div class="timestamp">Today 10:42 AM</div>';
+ document.getElementById('decision-panel').classList.remove('active');
+ const typingInd = document.getElementById('typing');
+ typingInd.classList.add('active');
+ setTimeout(() => {
+ typingInd.classList.remove('active');
+ const msgDiv = document.createElement('div');
+ msgDiv.className = 'message-bubble message-received';
+ let msgText = currentScenario.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="#" class="chat-link">$1</a>');
+ msgDiv.innerHTML = msgText;
+ chatArea.appendChild(msgDiv);
+ const spacer = document.createElement('div');
+ spacer.className = 'chat-bottom-spacer';
+ chatArea.appendChild(spacer);
+ chatArea.scrollTop = chatArea.scrollHeight;
+ const phone = document.getElementById('phone');
+ phone.classList.add('vibrate');
+ setTimeout(() => phone.classList.remove('vibrate'), 300);
+ document.getElementById('decision-panel').classList.add('active');
+ roundStartTime = Date.now();
+ }, 1500 + Math.random() * 1200);
+ }
+
+ window.makeDecision = function(choice) {
+ totalResponseTime += Date.now() - roundStartTime;
+ const isCorrect = choice === currentScenario.type;
+ if (isCorrect) score++;
+ else mistakes.push({ round: currentRound + 1, expected: currentScenario.type, scenario: currentScenario, picked: choice });
+ document.getElementById('decision-panel').classList.remove('active');
+ const fbTitle = document.getElementById('fb-title');
+ const fbText = document.getElementById('fb-text');
+ if (isCorrect) { fbTitle.innerHTML = '✅ Nice catch!'; fbTitle.style.color = '#137333'; }
+ else { fbTitle.innerHTML = '❌ Watch out!'; fbTitle.style.color = '#c5221f'; }
+ let expl = currentScenario.explanation;
+ if (currentScenario.flags && currentScenario.flags.length > 0) {
+ expl += "<br><ul>" + currentScenario.flags.map(f => `<li>${f}</li>`).join('') + "</ul>";
+ }
+ fbText.innerHTML = `You marked this as <b>${choice.toUpperCase()}</b>. It was actually <b>${currentScenario.type.toUpperCase()}</b>.<br><br>${expl}`;
+ document.getElementById('feedback-overlay').classList.add('active');
+ };
+
+ window.nextRoundAction = function() {
+ document.getElementById('feedback-overlay').classList.remove('active');
+ currentRound++;
+ playNextRound();
+ };
+
+ window.openProfile = function() {
+ if (!currentProfile) return;
+ document.getElementById('prof-initial').innerText = currentProfile.initial;
+ document.getElementById('prof-avatar').style.backgroundColor = currentProfile.color;
+ document.getElementById('prof-name').innerText = currentProfile.name;
+ document.getElementById('prof-username').innerText = currentProfile.username;
+ document.getElementById('prof-bio').innerText = currentProfile.bio;
+ document.getElementById('prof-posts').innerText = currentProfile.posts;
+ document.getElementById('prof-followers').innerText = currentProfile.followers;
+ document.getElementById('prof-mutuals').innerText = currentProfile.mutuals;
+ document.getElementById('prof-joined-text').innerText = currentProfile.joined;
+ document.getElementById('profile-overlay').classList.add('active');
+ };
+
+ window.closeProfile = function() { document.getElementById('profile-overlay').classList.remove('active'); };
+ window.closeLinkWarning = function() { document.getElementById('link-warning-overlay').classList.remove('active'); };
+
+ document.getElementById('chat-area').addEventListener('click', function(e) {
+ if (e.target.classList.contains('chat-link')) {
+ e.preventDefault();
+ document.getElementById('link-warning-overlay').classList.add('active');
+ }
+ });
+
+ function showScorecard() {
+ document.getElementById('game-screen').classList.remove('active');
+ document.getElementById('hud').style.display = 'none';
+ document.getElementById('end-screen').classList.add('active');
+ document.getElementById('final-score').innerText = `${score}/10`;
+ const avgTimeSecs = totalResponseTime / 1000 / 10;
+ document.getElementById('final-speed').innerText = avgTimeSecs < 4 ? "Fast ⚡" : avgTimeSecs > 7 ? "Slow 🐢" : "Medium";
+ const badge = document.getElementById('final-badge');
+ if (score >= 9) { badge.innerText = "🟢 Security Expert"; badge.style.color = "#4ade80"; badge.style.borderColor = "#4ade80"; }
+ else if (score >= 6) { badge.innerText = "🟡 Cautious User"; badge.style.color = "#facc15"; badge.style.borderColor = "#facc15"; }
+ else if (score >= 3) { badge.innerText = "🔴 At Risk"; badge.style.color = "#f87171"; badge.style.borderColor = "#f87171"; }
+ else { badge.innerText = "🚨 Highly Vulnerable"; badge.style.color = "#ef4444"; badge.style.borderColor = "#ef4444"; }
+ const mList = document.getElementById('mistakes-list');
+ if (mistakes.length === 0) {
+ mList.innerHTML = "<div class='m-txt' style='color:#4ade80; text-align:center;'>Perfect score! No mistakes made.</div>";
+ document.querySelector('.mistakes-title').style.display = 'none';
+ } else {
+ document.querySelector('.mistakes-title').style.display = 'block';
+ mList.innerHTML = mistakes.map(m => `<div class="m-item"><div class="m-rnd">Round ${m.round} - Missed ${m.expected.toUpperCase()}</div><div class="m-txt">"${m.scenario.text}"</div></div>`).join('');
+ }
+ }
+ </script>
+</body>
+</html>
