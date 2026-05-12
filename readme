@@ -4,90 +4,116 @@ An interactive web-based phishing and social engineering awareness training plat
 
 ## Features
 
-- **Interactive Training**: 10 rounds of escalating difficulty
+- **Interactive Training Modes**:  
+  - ⚡ Quick Training – 10 mixed scenarios  
+  - 🎯 Deep Training – up to 50 unique scenarios  
 - **Real-world Scenarios**: Safe, suspicious, and phishing message examples
 - **Instant Feedback**: Learn why each message is what it claims to be
-- **Profile Inspection**: Check sender profiles for red flags
-- **Security Scoring**: Get rated from "Highly Vulnerable" to "Security Expert"
+- **Profile Inspection**: Tap the sender to check their profile for red flags
+- **Hints System**: Up to 3 contextual hints per run ( ? button in the header)
+- **Security Scoring**: Get rated from “Highly Vulnerable” to “Security Expert”
+- **Speed Ranking**: See your average response time and rank (S–D)
 - **Beautiful UI**: Modern phone interface with smooth animations
 - **Three.js Background**: Dynamic particle animation system
 
 ## How to Play
 
-1. **Start the Training**: Click "Start Training" to begin
-2. **Review Messages**: Read each incoming direct message carefully
-3. **Make a Decision**: Mark each message as:
-   - ✅ **Safe**: Normal conversation
-   - ⚠️ **Suspicious**: Needs verification
-   - ❌ **Phishing**: Malicious intent
-4. **Get Feedback**: Learn the correct answer and understand the red flags
-5. **See Your Score**: Get your final security rating and review mistakes
+1. **Start the Training**  
+   Choose **Quick Training (10)** or **Deep Training (50)** from the start screen.
+
+2. **Review Messages**  
+   Read each incoming direct message carefully. You can:
+   - Inspect the message content
+   - Click the sender’s name to view their profile (followers, posts, mutuals, bio)
+
+3. **Use Hints (optional)**  
+   Press the **?** button in the header to use a hint.  
+   You have **3 hints per run**; each one highlights key red flags.
+
+4. **Make a Decision**  
+   Mark each message as:
+   - ✅ **Safe** – Normal conversation
+   - ⚠️ **Suspicious** – Needs verification
+   - ❌ **Phishing** – Malicious intent
+
+5. **Get Feedback**  
+   After each round, see if you were correct and read a short explanation with the main red flags.
+
+6. **See Your Score**  
+   At the end of the run you’ll see:
+   - Final score (correct out of total)
+   - Average response time and speed rank
+   - Overall security rating
+   - A detailed list of mistakes with explanations
 
 ## Message Categories
 
 ### Safe Messages
-- Normal greetings and casual conversation
-- No urgent requests or suspicious links
-- Standard social interactions
+- Normal greetings and casual conversation  
+- No urgent requests or suspicious links  
+- Standard social interactions with realistic context  
 
 ### Suspicious Messages
-- Unsolicited shortened links
-- Emotional manipulation tactics
-- Requests that need verification
-- Account verification claims from unknown sources
+- Unsolicited or shortened links
+- Emotional manipulation (“people are talking about you…”)  
+- Requests that need verification on another channel  
+- Vague “security” or “verification” claims from unknown sources  
 
 ### Phishing Messages
-- Too-good-to-be-true offers
-- Impersonation of trusted services
-- Urgency and threats ("act now or lose access")
-- Requests for credentials or financial information
+- Too-good-to-be-true offers and fake prizes  
+- Impersonation of trusted services (banks, PayPal, Netflix, parcel services)  
+- Urgency and threats (“act now or lose access”, “final warning”)  
+- Requests for credentials, financial details, or identity data (e.g. NI number)  
 
 ## Security Ratings
 
-- 🟢 **Security Expert**: 9-10/10 (Perfect awareness)
-- 🟡 **Cautious User**: 6-8/10 (Good understanding)
-- 🔴 **At Risk**: 3-5/10 (Needs improvement)
-- 🚨 **Highly Vulnerable**: 0-2/10 (High risk)
+- 🟢 **Security Expert**: 90–100% correct  
+- 🟡 **Cautious User**: 70–89% correct  
+- 🔴 **At Risk**: 50–69% correct  
+- 🚨 **Highly Vulnerable**: below 50%  
 
 ## Red Flags to Watch
 
-- ✘ Unsolicited links or shortened URLs
-- ✘ Urgent action required ("act now or lose access")
-- ✘ Spelling and grammar errors
-- ✘ Impersonation of trusted brands or services
-- ✘ Requests for sensitive information
-- ✘ New accounts with no mutual connections
-- ✘ Too-good-to-be-true offers
+- ✘ Unsolicited links or shortened URLs  
+- ✘ Urgent action required (“act now or lose access”)  
+- ✘ Spelling and grammar errors in “official” messages  
+- ✘ Impersonation of trusted brands or services  
+- ✘ Requests for passwords, codes, card details, or NI number  
+- ✘ New accounts with no mutual connections or almost no activity  
+- ✘ Too-good-to-be-true offers (free money, huge returns, random prizes)  
 
 ## Technologies Used
 
-- **HTML5** - Structure
-- **CSS3** - Styling and animations
-- **JavaScript (ES6+)** - Game logic
-- **Three.js** - Particle background animation
+- **HTML5** – Structure  
+- **CSS3** – Styling and animations  
+- **JavaScript (ES6+)** – Game logic and state management  
+- **Three.js** – Particle background animation  
 
 ## How to Deploy
 
 ### GitHub Pages
-1. Go to repository Settings
-2. Navigate to "Pages"
-3. Select `main` branch as the source
-4. Your site will be available at: https://ssramoss.github.io/INFOGUARD-Phishing-Simulation/
+
+1. Go to repository **Settings → Pages**  
+2. Set **Source** to `Deploy from a branch`  
+3. Select branch `main` and folder `/(root)`  
+4. After the deployment finishes, your site will be available at:  
+   `https://ssramoss.github.io/INFOGUARD-Phishing-Simulation/`
+
 ### Local Testing
-Simply open `index.html` in a modern web browser.
+
+Simply open `index.html` in a modern web browser (Chrome/Edge/Firefox/Safari).
 
 ## Browser Compatibility
 
-- Chrome/Edge (recommended)
-- Firefox
-- Safari
-- Any modern browser supporting ES6 modules and WebGL
+- Chrome / Edge (recommended)  
+- Firefox  
+- Safari  
+- Any modern browser supporting ES6 JavaScript and WebGL  
 
 ## Objectives
 
-- Increase awareness of social engineering tactics
-- Recognize common phishing patterns
-- Understand how attackers use psychological manipulation
-- Build confidence in identifying malicious content
-- Train employees on cybersecurity best practices
-
+- Increase awareness of social engineering tactics  
+- Recognize common phishing, suspicious, and safe patterns  
+- Understand how attackers use psychological manipulation  
+- Build confidence in identifying malicious content  
+- Provide a practical training tool for students and employees  
