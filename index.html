@@ -1,510 +1,991 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>INFOGUARD-Phishing-Simulation</title>
- <style>
- body { margin: 0; overflow: hidden; background-color: #050505; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; user-select: none;}
- * { box-sizing: border-box; }
- 
- #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none;}
- #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; display: flex; justify-content: center; align-items: center; }
- 
- .screen { display: none; pointer-events: auto; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%;}
- .screen.active { display: flex; }
- 
- /* Intro & Outro Screens */
- .glass-panel { background: rgba(15, 23, 42, 0.85); padding: 40px; border-radius: 24px; text-align: center; max-width: 500px; width: 90%; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.5);}
- h1 { margin-top: 0; color: #0ea5e9; font-size: 28px; margin-bottom: 15px;}
- p { color: #cbd5e1; line-height: 1.6; font-size: 16px; margin-bottom: 25px;}
- 
- .main-btn { background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; border: none; padding: 16px 36px; font-size: 18px; border-radius: 30px; cursor: pointer; font-weight: bold; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);}
- .main-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 20px rgba(14, 165, 233, 0.6); }
- 
- /* HUD */
- .hud { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 16px; font-weight: bold; pointer-events: auto; background: rgba(15, 23, 42, 0.8); padding: 12px 24px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); z-index: 10; display: none; color: white;}
- 
- /* Phone Frame */
- .phone-container { width: 375px; height: 812px; background: #fff; border-radius: 45px; border: 12px solid #111; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative; overflow: hidden; display: flex; flex-direction: column; color: #000; pointer-events: auto; transform-origin: center;}
- 
- .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 160px; height: 32px; background: #111; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; z-index: 10; display: flex; justify-content: center; align-items: center;}
- .notch-camera { width: 10px; height: 10px; border-radius: 50%; background: #222; margin-right: 15px; box-shadow: inset 0 0 2px #000;}
- .notch-speaker { width: 40px; height: 6px; border-radius: 10px; background: #222; box-shadow: inset 0 0 2px #000;}
- 
- .home-indicator { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 130px; height: 5px; background: #000; border-radius: 5px; z-index: 10; opacity: 0.3;}
- 
- /* Header */
- .dm-header { display: flex; align-items: center; padding: 15px 15px 10px; border-bottom: 1px solid #efefef; margin-top: 32px; background: white; z-index: 5;}
- .back-btn { font-size: 36px; line-height: 0.8; cursor: pointer; color: #262626; margin-right: 15px; margin-top: -5px;}
- .header-profile { display: flex; align-items: center; cursor: pointer; flex: 1;}
- .header-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; margin-right: 12px; font-size: 16px;}
- .header-info { display: flex; flex-direction: column;}
- .header-name { font-weight: 600; font-size: 15px; color: #262626;}
- .header-sub { font-size: 12px; color: #8e8e8e; margin-top: 2px;}
- .info-btn { font-size: 22px; cursor: pointer; color: #262626; padding: 5px;}
- 
- /* Chat Area */
- .chat-area { flex: 1; padding: 20px 15px; overflow-y: auto; display: flex; flex-direction: column; background: #fff; scroll-behavior: smooth;}
- .chat-area::-webkit-scrollbar { width: 0px; }
- 
- .timestamp { text-align: center; font-size: 12px; color: #8e8e8e; margin-bottom: 20px; font-weight: 500;}
- 
- .message-bubble { max-width: 75%; padding: 12px 16px; border-radius: 22px; margin-bottom: 15px; font-size: 15px; line-height: 1.4; word-wrap: break-word; animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.05);}
- .message-received { align-self: flex-start; background: #efefef; border-bottom-left-radius: 4px; color: #262626; transform-origin: bottom left;}
- 
- .chat-link { color: #00376b; text-decoration: underline; cursor: pointer; word-break: break-all;}
- 
- /* Typing Indicator */
- .typing { align-self: flex-start; background: #efefef; padding: 14px 18px; border-radius: 22px; border-bottom-left-radius: 4px; margin-bottom: 15px; display: none; }
- .typing.active { display: flex; align-items: center; gap: 4px; animation: fadeIn 0.3s; }
- .dot { width: 6px; height: 6px; background: #8e8e8e; border-radius: 50%; animation: typingAnim 1.4s infinite ease-in-out both; }
- .dot:nth-child(1) { animation-delay: -0.32s; }
- .dot:nth-child(2) { animation-delay: -0.16s; }
- 
- /* Decision Panel */
- .decision-panel { padding: 15px; background: #fafafa; border-top: 1px solid #efefef; display: flex; justify-content: space-between; gap: 8px; padding-bottom: 25px; transition: transform 0.3s; transform: translateY(100%); position: absolute; bottom: 0; left: 0; right: 0; z-index: 15;}
- .decision-panel.active { transform: translateY(0); }
- .chat-bottom-spacer { height: 90px; flex-shrink: 0; }
- 
- .decision-btn { flex: 1; padding: 12px 0; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
- .decision-btn:active { transform: scale(0.95); }
- .btn-safe { background: #e6f4ea; color: #137333; }
- .btn-safe:hover { background: #ceead6; }
- .btn-susp { background: #fef7e0; color: #b06000; }
- .btn-susp:hover { background: #fce8b2; }
- .btn-phish { background: #fce8e6; color: #c5221f; }
- .btn-phish:hover { background: #fad2cf; }
- .btn-icon { font-size: 18px; }
- 
- /* Overlays */
- .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 20; padding: 20px;}
- .overlay.active { display: flex; animation: fadeIn 0.3s; }
- .popup-card { background: #fff; padding: 25px; border-radius: 24px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);}
- .popup-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;}
- .popup-text { font-size: 15px; color: #444; margin-bottom: 24px; line-height: 1.5; text-align: left; background: #f9f9f9; padding: 15px; border-radius: 12px;}
- .popup-text ul { padding-left: 20px; margin-top: 10px; margin-bottom: 0; color: #d93025;}
- .popup-btn { background: #0095f6; color: #fff; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; font-size: 16px; transition: background 0.2s;}
- .popup-btn:active { background: #007bb5; }
- 
- /* Profile Inspect Overlay */
- .prof-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; padding-top: 10px;}
- .prof-avatar { width: 80px; height: 80px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 32px; font-weight: bold; margin-bottom: 15px;}
- .prof-name { font-weight: bold; font-size: 20px; color: #262626;}
- .prof-username { color: #8e8e8e; font-size: 14px; margin-top: 4px;}
- 
- .prof-stats { display: flex; justify-content: space-around; width: 100%; padding: 15px 0; border-top: 1px solid #efefef; border-bottom: 1px solid #efefef; margin-bottom: 20px;}
- .p-stat { display: flex; flex-direction: column; align-items: center;}
- .p-val { font-weight: bold; font-size: 16px; color: #262626;}
- .p-lbl { font-size: 13px; color: #8e8e8e; margin-top: 4px;}
- 
- .prof-bio { font-size: 14px; color: #262626; text-align: center; margin-bottom: 20px; padding: 0 10px; word-wrap: break-word;}
- .prof-joined { font-size: 13px; color: #8e8e8e; display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 20px;}
- 
- /* Scorecard */
- .score-row { display: flex; justify-content: space-around; margin: 30px 0;}
- .score-col { background: rgba(0,0,0,0.3); padding: 15px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);}
- .s-val { font-size: 24px; font-weight: bold; color: white;}
- .s-lbl { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px;}
- 
- .badge-box { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; font-size: 20px; font-weight: bold; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.1);}
- 
- .mistakes-container { background: rgba(0,0,0,0.3); border-radius: 16px; padding: 20px; text-align: left; max-height: 250px; overflow-y: auto; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.05);}
- .mistakes-title { color: #f87171; font-weight: bold; margin-bottom: 15px; font-size: 16px;}
- .m-item { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);}
- .m-item:last-child { border: none; padding: 0; margin: 0; }
- .m-rnd { color: #94a3b8; font-size: 13px; font-weight: bold; margin-bottom: 4px;}
- .m-txt { font-size: 14px; color: white; font-style: italic;}
- 
- /* Utilities & Animations */
- .hidden { display: none !important; }
- 
- @keyframes slideIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
- @keyframes slideUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
- @keyframes typingAnim { 0%, 80%, 100% { transform: scale(0); opacity: 0.5;} 40% { transform: scale(1); opacity: 1;} }
- @keyframes vibrateAnim { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
- @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
- 
- .vibrate { animation: vibrateAnim 0.3s linear; }
- 
- /* Link Warning Specifics */
- .warning-icon { font-size: 40px; margin-bottom: 10px;}
- #link-warning-overlay .popup-card { border: 2px solid #d93025; }
- </style>
- <!-- Import Maps for Three.js -->
- <script type="importmap">
- {
- "imports": {
- "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
- "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
- }
- }
- </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INFOGUARD – Phishing Simulation</title>
+<style>
+/* === BASE === */
+*{box-sizing:border-box;margin:0;padding:0}
+body{overflow:hidden;background:#050505;color:white;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;user-select:none}
+
+/* === CANVAS BG === */
+#canvas-container{position:fixed;inset:0;z-index:1;pointer-events:none}
+
+/* === UI LAYER === */
+#ui-layer{position:fixed;inset:0;z-index:2;pointer-events:none;display:flex;justify-content:center;align-items:center}
+.screen{display:none;pointer-events:auto;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%}
+.screen.active{display:flex}
+
+/* === GLASS PANEL === */
+.glass-panel{
+  background:rgba(10,18,35,0.92);
+  padding:44px 40px;
+  border-radius:28px;
+  text-align:center;
+  max-width:480px;
+  width:92%;
+  backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 24px 60px rgba(0,0,0,0.7),0 0 0 1px rgba(14,165,233,0.08);
+  animation:panelIn .5s cubic-bezier(.16,1,.3,1) both
+}
+@keyframes panelIn{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:none}}
+
+h1{color:#38bdf8;font-size:26px;margin-bottom:12px;letter-spacing:-.5px}
+.subtitle{color:#94a3b8;font-size:15px;line-height:1.6;margin-bottom:22px}
+.legend{font-size:13px;color:#64748b;text-align:left;background:rgba(255,255,255,.04);padding:14px 16px;border-radius:14px;margin-bottom:24px;line-height:2}
+.legend b{color:#cbd5e1}
+
+/* === BUTTONS === */
+.main-btn{
+  background:linear-gradient(135deg,#0ea5e9,#2563eb);
+  color:white;border:none;padding:15px 36px;font-size:16px;
+  border-radius:50px;cursor:pointer;font-weight:700;
+  transition:transform .2s,box-shadow .2s;
+  box-shadow:0 4px 18px rgba(14,165,233,.35);
+  width:100%;max-width:300px;margin-bottom:10px;display:block;margin-inline:auto
+}
+.main-btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 8px 24px rgba(14,165,233,.5)}
+.main-btn:active{transform:scale(.98)}
+.main-btn.secondary{background:linear-gradient(135deg,#7c3aed,#4f46e5);box-shadow:0 4px 18px rgba(124,58,237,.3)}
+.main-btn.secondary:hover{box-shadow:0 8px 24px rgba(124,58,237,.5)}
+.mode-label{font-size:12px;color:#475569;margin-bottom:6px;margin-top:4px}
+
+/* === HUD === */
+.hud{
+  position:fixed;top:22px;left:50%;transform:translateX(-50%);
+  font-size:14px;font-weight:700;pointer-events:none;
+  background:rgba(10,18,35,.9);padding:10px 22px;
+  border-radius:50px;border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(12px);z-index:10;display:none;color:#e2e8f0;
+  white-space:nowrap;letter-spacing:.3px;
+  box-shadow:0 4px 20px rgba(0,0,0,.4)
+}
+
+/* === PHONE === */
+.phone-container{
+  width:370px;height:800px;
+  background:#fff;border-radius:48px;border:11px solid #1a1a1a;
+  box-shadow:0 30px 80px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.05);
+  position:relative;overflow:hidden;display:flex;flex-direction:column;
+  color:#000;pointer-events:auto;
+  animation:phoneIn .6s cubic-bezier(.16,1,.3,1) both
+}
+@keyframes phoneIn{from{opacity:0;transform:translateY(40px) scale(.95)}to{opacity:1;transform:none}}
+
+/* Notch */
+.notch{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:130px;height:30px;background:#1a1a1a;
+  border-bottom-left-radius:18px;border-bottom-right-radius:18px;
+  z-index:10;display:flex;justify-content:center;align-items:center;gap:10px
+}
+.notch-camera{width:9px;height:9px;border-radius:50%;background:#2a2a2a;border:1px solid #333}
+.notch-speaker{width:36px;height:5px;border-radius:10px;background:#2a2a2a}
+.home-indicator{
+  position:absolute;bottom:7px;left:50%;transform:translateX(-50%);
+  width:120px;height:4px;background:#000;border-radius:4px;z-index:10;opacity:.2
+}
+
+/* === DM HEADER === */
+.dm-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 12px 10px;border-bottom:1px solid #f0f0f0;
+  margin-top:30px;background:#fff;z-index:5
+}
+.header-left{display:flex;align-items:center;flex:1;min-width:0}
+.header-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.header-profile{display:flex;align-items:center;cursor:pointer;min-width:0}
+.header-avatar{
+  width:34px;height:34px;border-radius:50%;display:flex;
+  justify-content:center;align-items:center;
+  color:white;font-weight:700;margin-right:10px;font-size:15px;flex-shrink:0
+}
+.header-info{display:flex;flex-direction:column;min-width:0}
+.header-name{font-weight:700;font-size:14px;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-sub{font-size:11px;color:#999;margin-top:1px}
+
+/* Icon buttons */
+.icon-btn{
+  width:28px;height:28px;border-radius:50%;border:1px solid #e0e0e0;
+  background:white;cursor:pointer;color:#333;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;transition:background .15s,transform .1s;
+  flex-shrink:0;line-height:1
+}
+.icon-btn:hover{background:#f5f5f5}
+.icon-btn:active{transform:scale(.9);background:#e8e8e8}
+
+/* === CHAT AREA === */
+.chat-area{
+  flex:1;padding:16px 14px;overflow-y:auto;
+  display:flex;flex-direction:column;background:#fff;
+  scroll-behavior:smooth
+}
+.chat-area::-webkit-scrollbar{width:0}
+.timestamp{
+  text-align:center;font-size:11px;color:#aaa;
+  margin-bottom:18px;font-weight:600;letter-spacing:.3px
+}
+.message-bubble{
+  max-width:78%;padding:11px 15px;border-radius:20px;
+  margin-bottom:12px;font-size:14px;line-height:1.45;
+  word-wrap:break-word;
+  animation:bubbleIn .35s cubic-bezier(.175,.885,.32,1.275) both;
+  box-shadow:0 1px 3px rgba(0,0,0,.06)
+}
+@keyframes bubbleIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.message-received{align-self:flex-start;background:#f0f0f0;border-bottom-left-radius:4px;color:#1a1a1a}
+.chat-link{color:#005fc7;text-decoration:underline;cursor:pointer;word-break:break-all}
+
+/* === TYPING INDICATOR === */
+.typing{
+  align-self:flex-start;background:#f0f0f0;
+  padding:12px 16px;border-radius:20px;border-bottom-left-radius:4px;
+  margin-bottom:12px;display:none
+}
+.typing.active{display:flex;align-items:center;gap:4px;animation:fadeIn .25s}
+.dot{
+  width:6px;height:6px;background:#aaa;border-radius:50%;
+  animation:typingAnim 1.3s infinite ease-in-out both
+}
+.dot:nth-child(1){animation-delay:-.32s}
+.dot:nth-child(2){animation-delay:-.16s}
+
+/* === DECISION PANEL === */
+.decision-panel{
+  padding:12px 12px 22px;background:#fafafa;
+  border-top:1px solid #ebebeb;
+  display:flex;justify-content:space-between;gap:7px;
+  transition:transform .35s cubic-bezier(.16,1,.3,1);
+  transform:translateY(100%);
+  position:absolute;bottom:0;left:0;right:0;z-index:15
+}
+.decision-panel.active{transform:translateY(0)}
+.chat-bottom-spacer{height:100px;flex-shrink:0}
+.decision-btn{
+  flex:1;padding:11px 0;border:none;border-radius:14px;
+  font-weight:700;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+  display:flex;flex-direction:column;align-items:center;
+  gap:4px;font-size:13px
+}
+.decision-btn:hover{transform:translateY(-2px)}
+.decision-btn:active{transform:scale(.94)}
+.btn-safe{background:#e8f5e9;color:#1b5e20;box-shadow:0 2px 8px rgba(76,175,80,.15)}
+.btn-susp{background:#fff8e1;color:#e65100;box-shadow:0 2px 8px rgba(255,152,0,.15)}
+.btn-phish{background:#fce4ec;color:#b71c1c;box-shadow:0 2px 8px rgba(244,67,54,.15)}
+.btn-icon{font-size:18px}
+
+/* === OVERLAYS === */
+.overlay{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,.55);
+  display:none;flex-direction:column;
+  justify-content:center;align-items:center;
+  z-index:20;padding:18px;
+  backdrop-filter:blur(4px)
+}
+.overlay.active{display:flex;animation:fadeIn .25s}
+.popup-card{
+  background:#fff;padding:24px 22px;border-radius:22px;
+  width:100%;text-align:center;
+  box-shadow:0 16px 40px rgba(0,0,0,.25);
+  animation:slideUp .3s cubic-bezier(.16,1,.3,1)
+}
+.popup-title{
+  font-size:18px;font-weight:800;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:center;gap:7px;color:#111
+}
+.popup-text{
+  font-size:13px;color:#444;margin-bottom:18px;line-height:1.6;
+  text-align:left;background:#f7f7f7;padding:13px;border-radius:12px;
+  max-height:240px;overflow-y:auto
+}
+.popup-text ul{padding-left:18px;margin-top:8px;margin-bottom:0;color:#c62828}
+.popup-text ul li{margin-bottom:3px}
+.popup-btn{
+  background:linear-gradient(135deg,#0ea5e9,#2563eb);
+  color:#fff;border:none;padding:13px 18px;border-radius:12px;
+  font-weight:700;width:100%;cursor:pointer;font-size:15px;
+  transition:opacity .15s,transform .1s;
+  box-shadow:0 4px 14px rgba(14,165,233,.3)
+}
+.popup-btn:hover{opacity:.92}
+.popup-btn:active{transform:scale(.97)}
+.popup-btn.danger{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 14px rgba(239,68,68,.3)}
+.popup-btn.neutral{background:#6b7280;box-shadow:none}
+.popup-btn+.popup-btn{margin-top:8px}
+
+/* Profile */
+.prof-wrap{padding:0 4px}
+.prof-header-inner{display:flex;flex-direction:column;align-items:center;margin-bottom:16px;padding-top:6px}
+.prof-avatar{
+  width:72px;height:72px;border-radius:50%;
+  display:flex;justify-content:center;align-items:center;
+  color:white;font-size:28px;font-weight:800;margin-bottom:12px
+}
+.prof-name{font-weight:800;font-size:18px;color:#111}
+.prof-username{color:#888;font-size:13px;margin-top:3px}
+.prof-stats{
+  display:flex;justify-content:space-around;width:100%;
+  padding:12px 0;border-top:1px solid #f0f0f0;
+  border-bottom:1px solid #f0f0f0;margin-bottom:14px
+}
+.p-stat{display:flex;flex-direction:column;align-items:center}
+.p-val{font-weight:800;font-size:15px;color:#111}
+.p-lbl{font-size:11px;color:#aaa;margin-top:3px}
+.prof-bio{font-size:13px;color:#333;text-align:center;margin-bottom:12px;padding:0 6px;word-wrap:break-word;line-height:1.5}
+.prof-joined{font-size:12px;color:#aaa;display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:16px}
+
+/* Scorecard */
+.score-row{display:flex;justify-content:space-around;margin:20px 0;gap:10px}
+.score-col{
+  background:rgba(255,255,255,.04);padding:14px 18px;
+  border-radius:16px;border:1px solid rgba(255,255,255,.07);flex:1;text-align:center
+}
+.s-val{font-size:22px;font-weight:800;color:white}
+.s-lbl{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.badge-box{
+  background:rgba(255,255,255,.04);padding:16px 18px;
+  border-radius:16px;font-size:17px;font-weight:800;
+  margin-bottom:20px;border:1px solid rgba(255,255,255,.08)
+}
+.mistakes-container{
+  background:rgba(0,0,0,.25);border-radius:16px;padding:18px;
+  text-align:left;max-height:240px;overflow-y:auto;margin-bottom:22px;
+  border:1px solid rgba(255,255,255,.04)
+}
+.mistakes-title{color:#f87171;font-weight:700;margin-bottom:12px;font-size:14px}
+.m-item{padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.m-item:last-child{border:none;padding:0;margin:0}
+.m-rnd{color:#64748b;font-size:12px;font-weight:700;margin-bottom:3px}
+.m-txt{font-size:13px;color:#e2e8f0;margin-bottom:3px}
+.m-why{font-size:12px;color:#94a3b8;margin-top:5px;line-height:1.55;background:rgba(255,255,255,.04);padding:9px;border-radius:8px}
+.m-why ul{padding-left:16px;margin:5px 0 0;color:#fca5a5}
+.m-why ul li{margin-bottom:2px}
+
+/* Speed ranks */
+.s-rank-S{color:#facc15}.s-rank-A{color:#4ade80}.s-rank-B{color:#94a3b8}.s-rank-C{color:#f87171}.s-rank-D{color:#ef4444}
+
+/* Hint pill */
+.hint-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(14,165,233,.1);color:#38bdf8;
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:50px;
+  border:1px solid rgba(14,165,233,.2);margin-bottom:14px
+}
+
+/* === ANIMATIONS === */
+@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes typingAnim{0%,80%,100%{transform:scale(0);opacity:.4}40%{transform:scale(1);opacity:1}}
+@keyframes vibrateAnim{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.vibrate{animation:vibrateAnim .25s linear}
+
+/* Link warning */
+#link-warning-overlay .popup-card{border:2px solid #ef4444}
+.warning-icon{font-size:36px;margin-bottom:8px}
+
+/* Responsive */
+@media(max-height:820px){.phone-container{height:720px}}
+@media(max-width:400px){.phone-container{width:calc(100vw - 24px)}}
+</style>
 </head>
 <body>
 
- <div id="canvas-container"></div>
- 
- <div id="ui-layer">
- 
- <div class="hud" id="hud">
- Round <span id="hud-round">1</span>/10 &nbsp;|&nbsp; Score: <span id="hud-score">0</span>
- </div>
+<div id="canvas-container"></div>
 
- <!-- Start Screen -->
- <div id="start-screen" class="screen active">
- <div class="glass-panel">
- <h1>🛡️ Phishing Attack Simulation</h1>
- <p>Learn to spot the warning signs of social engineering.</p>
- <p style="font-size: 14px; color: #94a3b8; text-align: left;">
- <b>Your Mission:</b> Review 10 incoming direct messages.<br><br>
- Determine if they are:<br>
- ✅ <b>Safe:</b> Normal conversation<br>
- ⚠️ <b>Suspicious:</b> Needs verification<br>
- ❌ <b>Phishing:</b> Malicious intent
- </p>
- <button class="main-btn" onclick="startSimulation()">Start Training</button>
- </div>
- </div>
+<div id="ui-layer">
 
- <!-- Game Screen (Phone UI) -->
- <div id="game-screen" class="screen">
- <div class="phone-container" id="phone">
- <div class="notch">
- <div class="notch-camera"></div>
- <div class="notch-speaker"></div>
- </div>
- 
- <div class="dm-header">
- <div class="back-btn">‹</div>
- <div class="header-profile" onclick="openProfile()">
- <div class="header-avatar" id="header-avatar"><span id="header-initial">A</span></div>
- <div class="header-info">
- <div class="header-name" id="header-name">Username</div>
- <div class="header-sub">Active now</div>
- </div>
- </div>
- <div class="info-btn" onclick="openProfile()">ⓘ</div>
- </div>
+  <!-- HUD -->
+  <div class="hud" id="hud">
+    Round <span id="hud-round">1</span>/<span id="hud-total">10</span>
+    &nbsp;·&nbsp; Score: <span id="hud-score">0</span>
+    &nbsp;·&nbsp; Hints: <span id="hud-hints">3</span>
+  </div>
 
- <div class="chat-area" id="chat-area">
- <div class="chat-bottom-spacer"></div>
- </div>
+  <!-- ========== START SCREEN ========== -->
+  <div id="start-screen" class="screen active">
+    <div class="glass-panel">
+      <h1>🛡️ INFOGUARD</h1>
+      <p class="subtitle">Phishing Attack Simulation<br>Can you spot every threat before it's too late?</p>
+      <div class="legend">
+        ✅ <b>Safe</b> – Normal conversation<br>
+        ⚠️ <b>Suspicious</b> – Needs verification<br>
+        ❌ <b>Phishing</b> – Malicious intent<br>
+        <span style="color:#38bdf8">💡 You get <b>3 hints</b> per run (? button)</span>
+      </div>
+      <div class="mode-label">10 rounds · ~3 min</div>
+      <button class="main-btn" onclick="startSimulation(10)">⚡ Quick Training</button>
+      <div class="mode-label" style="margin-top:10px">50 rounds · deep dive · ~15 min</div>
+      <button class="main-btn secondary" onclick="startSimulation(50)">🎯 Deep Training</button>
+    </div>
+  </div>
 
- <div class="typing" id="typing">
- <div class="dot"></div><div class="dot"></div><div class="dot"></div>
- </div>
+  <!-- ========== GAME SCREEN ========== -->
+  <div id="game-screen" class="screen">
+    <div class="phone-container" id="phone">
 
- <div class="decision-panel" id="decision-panel">
- <button class="decision-btn btn-safe" onclick="makeDecision('safe')">
- <span class="btn-icon">✅</span>Safe
- </button>
- <button class="decision-btn btn-susp" onclick="makeDecision('suspicious')">
- <span class="btn-icon">⚠️</span>Suspicious
- </button>
- <button class="decision-btn btn-phish" onclick="makeDecision('phishing')">
- <span class="btn-icon">❌</span>Phishing
- </button>
- </div>
+      <div class="notch">
+        <div class="notch-camera"></div>
+        <div class="notch-speaker"></div>
+      </div>
 
- <div class="home-indicator"></div>
+      <!-- DM Header: avatar+name on left, ⏸ and ? on right -->
+      <div class="dm-header">
+        <div class="header-left">
+          <div class="header-profile" onclick="openProfile()">
+            <div class="header-avatar" id="header-avatar"><span id="header-initial">A</span></div>
+            <div class="header-info">
+              <div class="header-name" id="header-name">Username</div>
+              <div class="header-sub" id="header-status-text">Active now</div>
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <button class="icon-btn" onclick="togglePause()" title="Pause">⏸</button>
+          <button class="icon-btn" onclick="useHint()" title="Hint (3 per run)">?</button>
+        </div>
+      </div>
 
- <!-- Feedback Overlay -->
- <div class="overlay" id="feedback-overlay">
- <div class="popup-card">
- <div class="popup-title" id="fb-title">✅ Result</div>
- <div class="popup-text" id="fb-text">Explanation...</div>
- <button class="popup-btn" onclick="nextRoundAction()">Next Message</button>
- </div>
- </div>
+      <div class="chat-area" id="chat-area">
+        <div class="chat-bottom-spacer"></div>
+      </div>
 
- <!-- Profile Overlay -->
- <div class="overlay" id="profile-overlay">
- <div class="popup-card" style="padding: 30px 20px;">
- <div class="prof-header">
- <div class="prof-avatar" id="prof-avatar"><span id="prof-initial">A</span></div>
- <div class="prof-name" id="prof-name">Name</div>
- <div class="prof-username" id="prof-username">@username</div>
- </div>
- <div class="prof-stats">
- <div class="p-stat">
- <div class="p-val" id="prof-posts">0</div>
- <div class="p-lbl">Posts</div>
- </div>
- <div class="p-stat">
- <div class="p-val" id="prof-followers">0</div>
- <div class="p-lbl">Followers</div>
- </div>
- <div class="p-stat">
- <div class="p-val" id="prof-mutuals" style="color: #0095f6;">0</div>
- <div class="p-lbl">Mutuals</div>
- </div>
- </div>
- <div class="prof-bio" id="prof-bio">Bio text...</div>
- <div class="prof-joined">
- 📅 <span id="prof-joined-text">Joined recently</span>
- </div>
- <button class="popup-btn" onclick="closeProfile()">Close</button>
- </div>
- </div>
+      <div class="typing" id="typing">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
 
- <!-- Link Warning Overlay -->
- <div class="overlay" id="link-warning-overlay">
- <div class="popup-card">
- <div class="warning-icon">🚨</div>
- <div class="popup-title" style="color:#d93025; flex-direction:column; gap:0;">SECURITY BLOCK</div>
- <div class="popup-text" style="background:#fff3f2; border: 1px solid #fad2cf;">
- <b>Connection Terminated.</b><br><br>
- Clicking unknown links in direct messages is a major security risk. This could have resulted in malware or stolen credentials.
- </div>
- <button class="popup-btn" style="background:#d93025;" onclick="closeLinkWarning()">Understood</button>
- </div>
- </div>
+      <div class="decision-panel" id="decision-panel">
+        <button class="decision-btn btn-safe"  onclick="makeDecision('safe')"><span class="btn-icon">✅</span>Safe</button>
+        <button class="decision-btn btn-susp"  onclick="makeDecision('suspicious')"><span class="btn-icon">⚠️</span>Suspicious</button>
+        <button class="decision-btn btn-phish" onclick="makeDecision('phishing')"><span class="btn-icon">❌</span>Phishing</button>
+      </div>
 
- </div>
- </div>
+      <div class="home-indicator"></div>
 
- <!-- End Screen -->
- <div id="end-screen" class="screen">
- <div class="glass-panel">
- <h1>Simulation Complete</h1>
- <div class="badge-box" id="final-badge">🟢 Security Expert</div>
- <div class="score-row">
- <div class="score-col">
- <div class="s-val" id="final-score">0/10</div>
- <div class="s-lbl">Score</div>
- </div>
- <div class="s-val" style="align-self: center; color: rgba(255,255,255,0.2);">|</div>
- <div class="score-col">
- <div class="s-val" id="final-speed">Fast</div>
- <div class="s-lbl">Response Time</div>
- </div>
- </div>
- <div class="mistakes-container" id="mistakes-container">
- <div class="mistakes-title">Areas for Improvement:</div>
- <div id="mistakes-list"></div>
- </div>
- <button class="main-btn" onclick="startSimulation()">Restart Training</button>
- </div>
- </div>
+      <!-- FEEDBACK -->
+      <div class="overlay" id="feedback-overlay">
+        <div class="popup-card">
+          <div class="popup-title" id="fb-title">Result</div>
+          <div class="popup-text" id="fb-text"></div>
+          <button class="popup-btn" onclick="nextRoundAction()">Next Message →</button>
+        </div>
+      </div>
 
- </div>
+      <!-- PROFILE -->
+      <div class="overlay" id="profile-overlay">
+        <div class="popup-card">
+          <div class="prof-wrap">
+            <div class="prof-header-inner">
+              <div class="prof-avatar" id="prof-avatar"><span id="prof-initial">A</span></div>
+              <div class="prof-name" id="prof-name">Name</div>
+              <div class="prof-username" id="prof-username">@username</div>
+            </div>
+            <div class="prof-stats">
+              <div class="p-stat"><div class="p-val" id="prof-posts">0</div><div class="p-lbl">Posts</div></div>
+              <div class="p-stat"><div class="p-val" id="prof-followers">0</div><div class="p-lbl">Followers</div></div>
+              <div class="p-stat"><div class="p-val" id="prof-mutuals" style="color:#0095f6">0</div><div class="p-lbl">Mutuals</div></div>
+            </div>
+            <div class="prof-bio" id="prof-bio">...</div>
+            <div class="prof-joined">📅 <span id="prof-joined-text">Joined recently</span></div>
+          </div>
+          <button class="popup-btn" onclick="closeProfile()">Close</button>
+        </div>
+      </div>
 
- <script type="module">
- import * as THREE from 'three';
+      <!-- LINK WARNING -->
+      <div class="overlay" id="link-warning-overlay">
+        <div class="popup-card">
+          <div class="warning-icon">🚨</div>
+          <div class="popup-title" style="color:#dc2626">SECURITY BLOCK</div>
+          <div class="popup-text" style="background:#fff1f2;border:1px solid #fecdd3">
+            <b>Connection Terminated.</b><br><br>
+            Clicking unknown links in DMs can install malware or steal your credentials. Never click unverified links.
+          </div>
+          <button class="popup-btn danger" onclick="closeLinkWarning()">Understood</button>
+        </div>
+      </div>
 
- // --- Three.js Particle Background ---
- const scene = new THREE.Scene();
- scene.fog = new THREE.FogExp2(0x050505, 0.002);
- const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
- const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
- renderer.setSize(window.innerWidth, window.innerHeight);
- renderer.setPixelRatio(window.devicePixelRatio);
- document.getElementById('canvas-container').appendChild(renderer.domElement);
+      <!-- PAUSE -->
+      <div class="overlay" id="pause-overlay">
+        <div class="popup-card">
+          <div class="popup-title">⏸ Paused</div>
+          <div class="popup-text">Timer is paused. Take a break and press resume when you're ready.</div>
+          <button class="popup-btn" onclick="togglePause()">▶ Resume Training</button>
+        </div>
+      </div>
 
- const geometry = new THREE.BufferGeometry();
- const vertices = [];
- for (let i = 0; i < 600; i++) {
- vertices.push(
- (Math.random() - 0.5) * 30,
- (Math.random() - 0.5) * 30,
- (Math.random() - 0.5) * 30
- );
- }
- geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
- const material = new THREE.PointsMaterial({ 
- color: 0x0ea5e9, size: 0.06, transparent: true, opacity: 0.6,
- blending: THREE.AdditiveBlending
- });
- const particles = new THREE.Points(geometry, material);
- scene.add(particles);
- camera.position.z = 10;
+      <!-- HINT -->
+      <div class="overlay" id="hint-overlay">
+        <div class="popup-card">
+          <div class="popup-title" id="hint-title">💡 Hint</div>
+          <div class="popup-text" id="hint-text"></div>
+          <button class="popup-btn" onclick="closeHint()">Got it</button>
+        </div>
+      </div>
 
- function animate() {
- requestAnimationFrame(animate);
- particles.rotation.x += 0.0003;
- particles.rotation.y += 0.0005;
- renderer.render(scene, camera);
- }
- animate();
+    </div>
+  </div>
 
- window.addEventListener('resize', () => {
- camera.aspect = window.innerWidth / window.innerHeight;
- camera.updateProjectionMatrix();
- renderer.setSize(window.innerWidth, window.innerHeight);
- });
+  <!-- ========== END SCREEN ========== -->
+  <div id="end-screen" class="screen">
+    <div class="glass-panel" style="max-width:500px">
+      <h1>Run Complete</h1>
+      <div class="badge-box" id="final-badge">🟢 Security Expert</div>
+      <div class="score-row">
+        <div class="score-col">
+          <div class="s-val" id="final-score">0/10</div>
+          <div class="s-lbl">Score</div>
+        </div>
+        <div class="score-col">
+          <div class="s-val" id="final-speed">–</div>
+          <div class="s-lbl">Avg Speed</div>
+        </div>
+        <div class="score-col">
+          <div class="s-val" id="final-rank">–</div>
+          <div class="s-lbl">Rank</div>
+        </div>
+      </div>
+      <div class="mistakes-container">
+        <div class="mistakes-title">📚 Review – What to look out for:</div>
+        <div id="mistakes-list"></div>
+      </div>
+      <button class="main-btn" onclick="goToMenu()">← Back to Menu</button>
+    </div>
+  </div>
 
- // --- Game Data ---
- const namesList = ["Alex","Mia","Cora","Jake","Zara","Noah","Lily","Ethan","Sofia","Leo","Ava","Owen","Nora","Finn","Isla","Kai","Luna","Ryo","Maya","Sam","Jade","Cole","Ruby","Aiden","Zoe","Luca","Iris","Marco","Stella","Eli","Piper","Asher","Violet","Jasper","Sage","River","Fern","Quinn","Blake","Reese","Avery","Morgan","Skylar","Casey","Jamie","Jordan","Taylor","Riley","Cameron","Peyton","Hayden","Emery","Rowan","Aubrey","Sawyer","Dallas","Sydney","Spencer","Bailey","Addison","Parker","Logan","Dylan","Hunter","Bryce","Devon","Sloane","Paige","Kylie","Hailey"];
+</div>
 
- const safeScenarios = [
- { text: "Hey! How are you doing? It's been a while 😊", type: "safe", explanation: "This is a normal greeting with no urgent requests, links, or suspicious behavior." },
- { text: "Did you see the game last night? Crazy finish!", type: "safe", explanation: "Casual conversation about a recent event. Completely safe." },
- { text: "Are you free this weekend? Want to grab coffee ☕", type: "safe", explanation: "A standard social invitation with no red flags." },
- { text: "lol did you see that meme I tagged you in?", type: "safe", explanation: "Normal social media interaction without external links." },
- { text: "Happy birthday! Hope you have a great day 🎉", type: "safe", explanation: "Standard celebratory message. Safe to reply." }
- ];
+<!-- Three.js via normal script tag (fixes ReferenceError) -->
+<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+<script>
+/* ===================== THREE.JS BACKGROUND ===================== */
+(function(){
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x050505, 0.002);
+  const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
 
- const suspiciousScenarios = [
- { text: "Hey, do you know this person? They keep messaging me: https://tinyurl.com/check123", type: "suspicious", explanation: "While possibly from a concerned friend, the link is unsolicited and the URL is non-standard. Always verify before clicking.", flags: ["Unsolicited message from an unknown contact", "Suspicious shortened URL", "Ask to engage without context"] },
- { text: "Can you vote for my photo in this competition? http://vote-now.example", type: "suspicious", explanation: "A generic voting link is often used to harvest login credentials. Confirm with the sender through another channel.", flags: ["Generic competition link", "Asks to click an unfamiliar URL", "Could be credential harvesting"] },
- { text: "Someone told me you said something about me? What's going on?", type: "suspicious", explanation: "This uses emotional manipulation to provoke a quick, unthinking response — a common social engineering setup.", flags: ["Emotional pressure", "Unexpected accusation", "Triggers quick response"] },
- { text: "I lost my phone and got a new number. Can you text me back here?", type: "suspicious", explanation: "Could be real, but also a common way attackers impersonate friends to bypass security. Verify through another trusted channel first.", flags: ["New number request", "Impersonation attempt", "Needs external verification"] }
- ];
+  const verts = [];
+  for(let i=0;i<800;i++) verts.push((Math.random()-.5)*36,(Math.random()-.5)*36,(Math.random()-.5)*36);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts,3));
+  const mat = new THREE.PointsMaterial({color:0x38bdf8,size:0.055,transparent:true,opacity:0.5,blending:THREE.AdditiveBlending});
+  const pts = new THREE.Points(geo,mat);
+  scene.add(pts);
+  camera.position.z=10;
 
- const phishingScenarios = [
- { text: "Hey! I found this link where you can get free concert tickets 🎟️ hurry before they run out: http://concert-freebie.example", type: "phishing", explanation: "Classic phishing: offers something too good to be true, creates false urgency, and uses a suspicious link.", flags: ["Free concert tickets", "Hurry before they run out", "Unexpected promotional offer"] },
- { text: "Your Instagram account has been reported. Click here to verify ownership immediately or it will be deleted: http://insta-secure.example", type: "phishing", explanation: "Official support will NEVER message you via DM. This features extreme urgency and a fake support URL.", flags: ["Account has been reported", "Verify ownership immediately", "Fake support URL"] },
- { text: "I need a quick favor 🙏 can you send me $20 via PayPal? I'll pay you back tomorrow, I'm stuck abroad", type: "phishing", explanation: "A classic 'stranded traveler' scam. The account has been compromised to ask friends for money.", flags: ["Send me $20 via PayPal", "Stuck abroad", "Promises quick repayment"] },
- { text: "This job offer just came in for you - perfect match! Apply now before deadline: http://apply-now.example", type: "phishing", explanation: "Uses the lure of a job and a tight deadline to rush you into clicking a malicious link.", flags: ["Apply now before deadline", "Unexpected job offer", "Pressure to act fast"] }
- ];
+  (function anim(){
+    requestAnimationFrame(anim);
+    pts.rotation.x+=0.00025;
+    pts.rotation.y+=0.0004;
+    renderer.render(scene,camera);
+  })();
 
- // --- Game State ---
- let currentRound = 0, score = 0, mistakes = [], roundQueue = [];
- let currentScenario = null, currentProfile = null;
- let roundStartTime = 0, totalResponseTime = 0, usedNames = [];
+  window.addEventListener('resize',()=>{
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
+})();
 
- function shuffleArray(array) {
- let arr = [...array];
- for (let i = arr.length - 1; i > 0; i--) {
- const j = Math.floor(Math.random() * (i + 1));
- [arr[i], arr[j]] = [arr[j], arr[i]];
- }
- return arr;
- }
+/* ===================== SCENARIOS (50) ===================== */
+var scenarios = [
+  /* SAFE (18) */
+  {type:'safe', text:"Hey! How are you doing? It's been ages 😊",
+   explanation:"Normal friendly greeting – no links, urgency, or unusual requests."},
+  {type:'safe', text:"Did you see the game last night? That ending was insane!",
+   explanation:"Casual sports chat. Completely safe."},
+  {type:'safe', text:"Are you free this weekend? Want to grab coffee ☕",
+   explanation:"Standard social invitation – nothing suspicious."},
+  {type:'safe', text:"lol did you see that meme I tagged you in on the group?",
+   explanation:"Referring to an existing group tag, not pushing an external link."},
+  {type:'safe', text:"Happy birthday!! Hope you have the best day 🎉🎂",
+   explanation:"Simple birthday message with no external links or asks."},
+  {type:'safe', text:"Just got back from holiday, remind me to show you the pics 📸",
+   explanation:"Normal catch-up message. Safe to reply."},
+  {type:'safe', text:"Can you send me your new address? I'm sending Christmas cards this year!",
+   explanation:"Friendly request from someone you know. No malicious pattern here."},
+  {type:'safe', text:"I finally watched that film you recommended – it was brilliant!",
+   explanation:"Casual reference to a prior conversation. No red flags."},
+  {type:'safe', text:"Are you coming to Jess's birthday on Friday?",
+   explanation:"Social event question. No suspicious elements."},
+  {type:'safe', text:"Heads up – the lecture tomorrow has been moved to Room 4B 👍",
+   explanation:"Routine informational message. No links or urgency."},
+  {type:'safe', text:"Just thinking about that project we did together, that was such a laugh 😄",
+   explanation:"Reminiscing about a past shared experience – completely safe."},
+  {type:'safe', text:"Can you review my CV before I send it off? No rush at all!",
+   explanation:"Normal request between contacts. No pressure or external link."},
+  {type:'safe', text:"Mum says hi by the way 👋",
+   explanation:"Friendly relay of a greeting. Zero red flags."},
+  {type:'safe', text:"I found the note you left in my bag, it made my day 😊",
+   explanation:"Referencing a physical real-world interaction. Definitely safe."},
+  {type:'safe', text:"Do you have the notes from Tuesday's class? I missed it",
+   explanation:"Normal academic request between students."},
+  {type:'safe', text:"Just saw you on the bus but you had headphones in haha, see you later!",
+   explanation:"Referencing a real-world sighting. No suspicious pattern."},
+  {type:'safe', text:"Happy New Year!! Wishing you all the best for 2026 🥂",
+   explanation:"Seasonal greeting. Nothing to worry about."},
+  {type:'safe', text:"Movie night at mine Saturday? I'm thinking horror 🎬👻",
+   explanation:"Social invitation with no links, urgency, or requests for info."},
 
- function generateProfile(name, isPhishing) {
- const isNew = isPhishing && Math.random() > 0.4;
- return {
- name, initial: name.charAt(0),
- username: `@${name.toLowerCase()}`,
- color: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`,
- followers: isNew ? Math.floor(Math.random() * 40) : Math.floor(Math.random() * 800) + 150,
- mutuals: isPhishing ? 0 : Math.floor(Math.random() * 15) + 2,
- joined: isNew ? "Joined this week" : `Joined ${Math.floor(Math.random() * 4) + 1} years ago`,
- posts: isNew ? Math.floor(Math.random() * 3) : Math.floor(Math.random() * 300) + 20,
- bio: isPhishing ? (isNew ? "FREE MONEY LINK BELOW👇" : "Hacked? Nah just living.") : "Just living life ✨ | Coffee addict ☕"
- };
- }
+  /* SUSPICIOUS (16) */
+  {type:'suspicious',
+   text:"Hey, do you know this person? They keep messaging me: https://tinyurl.com/check123",
+   explanation:"Even from a friend, shortened URLs with no context are risky. Verify before clicking.",
+   flags:["Shortened URL hides the real destination","No context about who the person is","Could redirect to malware"]},
+  {type:'suspicious',
+   text:"Can you vote for my photo in this competition? http://vote-now.example",
+   explanation:"Voting competition links frequently harvest credentials. Confirm with the sender first.",
+   flags:["Generic competition URL","Could require login to harvest credentials","Unsolicited request to click"]},
+  {type:'suspicious',
+   text:"Someone told me you said something bad about me. What's going on??",
+   explanation:"Emotional manipulation to provoke a fast, unthinking response – classic social engineering.",
+   flags:["Creates emotional urgency","Vague accusation","Designed to bypass rational thinking"]},
+  {type:'suspicious',
+   text:"I lost my phone and got a new number. Can you text me back on this?",
+   explanation:"Possible impersonation. Always verify through a different trusted channel.",
+   flags:["New number not verified","Common impersonation tactic","Moving conversation to unverified channel"]},
+  {type:'suspicious',
+   text:"A mutual friend said you could help me with something. Can we talk?",
+   explanation:"Vague name-dropping. No actual friend is named – social manipulation.",
+   flags:["Vague claim of a mutual contact","No specific detail given","Builds false trust before asking for something"]},
+  {type:'suspicious',
+   text:"I'm doing a cybersecurity survey for uni. Can you fill it in? https://forms.gl/survey99",
+   explanation:"Surveys can collect personal info. Verify the institution and URL before filling anything in.",
+   flags:["Unverified survey link","Asks for personal info","Could be phishing disguised as research"]},
+  {type:'suspicious',
+   text:"Someone is spreading screenshots of you. DM me and I'll send them",
+   explanation:"Designed to cause panic and force contact. Classic emotional hook.",
+   flags:["Creates alarm and urgency","No link yet – setup for follow-up","Social engineering opener"]},
+  {type:'suspicious',
+   text:"You've been selected for a brand collab! Fill in your details here: http://collabform.example",
+   explanation:"Unverified brand collab forms harvest credentials. Confirm via official channels.",
+   flags:["Unexpected flattering offer","Form collects personal info","Unrecognised URL"]},
+  {type:'suspicious',
+   text:"I heard you're moving? My cousin is a great estate agent – here's her link: http://estatelinks.example",
+   explanation:"Unsolicited referrals with unknown links. Could be legit, but needs checking.",
+   flags:["Unsolicited link from acquaintance","Unknown domain","Relies on social trust to get a click"]},
+  {type:'suspicious',
+   text:"Not sure if you saw but your name appeared in this article: http://news-mentions.example",
+   explanation:"Curiosity bait tactic. Verify the site is legitimate before clicking.",
+   flags:["Curiosity bait","Unfamiliar news domain","Common social engineering hook"]},
+  {type:'suspicious',
+   text:"Random but – did you post something weird last night? People are talking",
+   explanation:"Vague alarming claim to provoke questions or a follow-up click.",
+   flags:["Creates social anxiety","No specifics","Primes you for a phishing follow-up"]},
+  {type:'suspicious',
+   text:"My account got hacked but I'm back! Can you re-add me on this new one?",
+   explanation:"The original may still be compromised – or this IS the attacker. Verify in person.",
+   flags:["Account hacking claim","Asks to add unknown account","Possible impersonation"]},
+  {type:'suspicious',
+   text:"I've recommended you for a freelance role. They'll DM you. Just confirm your portfolio URL",
+   explanation:"The follow-up DM may be phishing using your name. Verify who referred you.",
+   flags:["Unsolicited job lead","Sets up a future impersonation","No company or role details"]},
+  {type:'suspicious',
+   text:"Did you apply for that gig? They just posted your details publicly by mistake",
+   explanation:"Alarming claim to provoke a quick reaction. Verify via the company's official site.",
+   flags:["Designed to cause panic","No specifics about which gig","Could redirect to credential-harvesting page"]},
+  {type:'suspicious',
+   text:"There's a group chat about you. I'll add you – just confirm your username and email",
+   explanation:"Requesting email to 'add you' is a red flag. Email is not needed for group invites.",
+   flags:["Asks for email to add you","No reason to need email","Classic credential harvest approach"]},
+  {type:'suspicious',
+   text:"Babe I accidentally sent you something I didn't mean to. Can you delete it without looking? 😬",
+   explanation:"Social pressure to act quickly without thinking.",
+   flags:["Pressures a fast action","Discourages thinking","Manipulation through social obligation"]},
 
- // --- Global Game Functions ---
- window.startSimulation = function() {
- document.getElementById('start-screen').classList.remove('active');
- document.getElementById('end-screen').classList.remove('active');
- document.getElementById('game-screen').classList.add('active');
- document.getElementById('hud').style.display = 'block';
- currentRound = 0; score = 0; mistakes = []; totalResponseTime = 0;
- let q = [];
- q.push(...shuffleArray(safeScenarios).slice(0, 4));
- q.push(...shuffleArray(suspiciousScenarios).slice(0, 3));
- q.push(...shuffleArray(phishingScenarios).slice(0, 3));
- roundQueue = shuffleArray(q);
- usedNames = shuffleArray(namesList).slice(0, 10);
- playNextRound();
- };
+  /* PHISHING (16) */
+  {type:'phishing',
+   text:"Hey! Free concert tickets 🎟️ – hurry before they run out: http://concert-freebie.example",
+   explanation:"Classic phishing: too-good-to-be-true offer + urgency + unknown link.",
+   flags:["Free offer to grab attention","Creates false urgency","Suspicious unknown URL"]},
+  {type:'phishing',
+   text:"Your Instagram account has been reported. Verify ownership immediately or it gets deleted: http://insta-secure.example",
+   explanation:"Official support never contacts you by DM. Fake urgency + fake URL.",
+   flags:["Account deletion threat","Impersonates official support","Non-official domain"]},
+  {type:'phishing',
+   text:"Quick favour 🙏 – can you send me £20 via PayPal? I'm stuck at the airport, will pay back tonight",
+   explanation:"Classic stranded traveller scam. Account likely compromised.",
+   flags:["Requesting money urgently","Stranded abroad story","Promises quick repayment"]},
+  {type:'phishing',
+   text:"Your parcel couldn't be delivered. Pay the £1.49 fee here to reschedule: http://parcel-rebook.example",
+   explanation:"Fake parcel delivery scam – very common in the UK. The small fee harvests card details.",
+   flags:["Unexpected delivery notice","Small fee seems harmless","Card details harvested on fake site"]},
+  {type:'phishing',
+   text:"CONGRATULATIONS 🎉 You've won a £500 Amazon voucher! Claim it before midnight: http://amzn-prize.example",
+   explanation:"Prize phishing with artificial deadline. No legitimate prize arrives via DM.",
+   flags:["Unsolicited prize","Midnight deadline pressure","Fake Amazon domain"]},
+  {type:'phishing',
+   text:"This job offer just came in for you – perfect match! Apply before Friday: http://apply-now.example",
+   explanation:"Unexpected job offer + deadline = pressure to click a malicious link.",
+   flags:["Unsolicited job offer","Time pressure","Unknown application site"]},
+  {type:'phishing',
+   text:"Your Netflix subscription has expired. Update your payment here to avoid losing access: http://netflix-billing.example",
+   explanation:"Fake billing alert. Netflix never contacts you via DM.",
+   flags:["Account suspension threat","Harvests payment details","Fake brand URL"]},
+  {type:'phishing',
+   text:"⚠️ Unusual sign-in on your account from Russia. Confirm it was you: http://account-alert.example",
+   explanation:"Login alert scams are extremely common. Banks/services never DM you like this.",
+   flags:["Creates panic","Fake login alert","Non-official domain"]},
+  {type:'phishing',
+   text:"I've been making £800/day with this investment. Only 3 spots left, want in? http://crypto-gains.example",
+   explanation:"Classic investment fraud. Unrealistic returns + artificial scarcity.",
+   flags:["Unrealistic income claims","Artificial scarcity '3 spots left'","High-risk investment link"]},
+  {type:'phishing',
+   text:"Hi, this is PayPal Security. We've frozen your account due to suspicious activity. Verify: http://paypal-secure.example",
+   explanation:"PayPal never DMs customers. URL is not paypal.com.",
+   flags:["Impersonates PayPal Security","Account freeze threat","Non-official domain"]},
+  {type:'phishing',
+   text:"Your cloud storage is full and files will be deleted in 24 hours. Upgrade now: http://cloud-upgrade.example",
+   explanation:"Fear-based phishing. Cloud services never DM you.",
+   flags:["Data deletion threat","24-hour urgency","Non-official upgrade link"]},
+  {type:'phishing',
+   text:"We found your CV online and have a role paying £60k. Reply with your NI number to apply",
+   explanation:"No legitimate recruiter asks for a NI number over DM. This is identity theft.",
+   flags:["Requests NI number (identity theft)","Unsolicited job approach","High salary used as bait"]},
+  {type:'phishing',
+   text:"You've been randomly selected to test our new app 📱 Download here before public launch: http://beta-app.example",
+   explanation:"Fake beta access is used to install malware.",
+   flags:["Exclusive beta access bait","Unknown download source","Could install malware"]},
+  {type:'phishing',
+   text:"⚠️ Your WhatsApp is being accessed from another device. Tap here to block it: http://whatsapp-block.example",
+   explanation:"WhatsApp never communicates via DM. Fake security alert.",
+   flags:["Fake security alert","Impersonates WhatsApp","Non-official URL"]},
+  {type:'phishing',
+   text:"A friend sent you a gift card 🎁 Redeem your £100 here before it expires: http://giftcard-redeem.example",
+   explanation:"Gift card scams collect personal info or card details. Legitimate gift cards don't arrive via DM.",
+   flags:["Unsolicited gift card","Expiry pressure","Personal or card info required"]},
+  {type:'phishing',
+   text:"FINAL WARNING: Your email account will be suspended in 2 hours. Confirm login: http://mail-verify.example",
+   explanation:"ALL-CAPS urgency + 2-hour deadline + non-official URL = textbook phishing.",
+   flags:["ALL-CAPS fake urgency","2-hour suspension threat","Non-official verification link"]}
+];
 
- function playNextRound() {
- if (currentRound >= 10) { showScorecard(); return; }
- currentScenario = roundQueue[currentRound];
- currentProfile = generateProfile(usedNames[currentRound], currentScenario.type === 'phishing');
- document.getElementById('hud-round').innerText = currentRound + 1;
- document.getElementById('hud-score').innerText = score;
- document.getElementById('header-initial').innerText = currentProfile.initial;
- document.getElementById('header-avatar').style.backgroundColor = currentProfile.color;
- document.getElementById('header-name').innerText = currentProfile.name;
- const chatArea = document.getElementById('chat-area');
- chatArea.innerHTML = '<div class="timestamp">Today 10:42 AM</div>';
- document.getElementById('decision-panel').classList.remove('active');
- const typingInd = document.getElementById('typing');
- typingInd.classList.add('active');
- setTimeout(() => {
- typingInd.classList.remove('active');
- const msgDiv = document.createElement('div');
- msgDiv.className = 'message-bubble message-received';
- let msgText = currentScenario.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="#" class="chat-link">$1</a>');
- msgDiv.innerHTML = msgText;
- chatArea.appendChild(msgDiv);
- const spacer = document.createElement('div');
- spacer.className = 'chat-bottom-spacer';
- chatArea.appendChild(spacer);
- chatArea.scrollTop = chatArea.scrollHeight;
- const phone = document.getElementById('phone');
- phone.classList.add('vibrate');
- setTimeout(() => phone.classList.remove('vibrate'), 300);
- document.getElementById('decision-panel').classList.add('active');
- roundStartTime = Date.now();
- }, 1500 + Math.random() * 1200);
- }
+/* ===================== PROFILE DATA ===================== */
+var namesList=["Alex","Mia","Cora","Jake","Zara","Noah","Lily","Ethan","Sofia","Leo","Ava","Owen","Nora","Finn","Isla","Kai","Luna","Ryo","Maya","Sam","Jade","Cole","Ruby","Aiden","Zoe","Luca","Iris","Marco","Stella","Eli","Piper","Asher","Violet","Jasper","Sage","River","Fern","Quinn","Blake","Reese","Avery","Morgan","Skylar","Casey","Jamie","Jordan","Taylor","Riley","Cameron","Peyton"];
 
- window.makeDecision = function(choice) {
- totalResponseTime += Date.now() - roundStartTime;
- const isCorrect = choice === currentScenario.type;
- if (isCorrect) score++;
- else mistakes.push({ round: currentRound + 1, expected: currentScenario.type, scenario: currentScenario, picked: choice });
- document.getElementById('decision-panel').classList.remove('active');
- const fbTitle = document.getElementById('fb-title');
- const fbText = document.getElementById('fb-text');
- if (isCorrect) { fbTitle.innerHTML = '✅ Nice catch!'; fbTitle.style.color = '#137333'; }
- else { fbTitle.innerHTML = '❌ Watch out!'; fbTitle.style.color = '#c5221f'; }
- let expl = currentScenario.explanation;
- if (currentScenario.flags && currentScenario.flags.length > 0) {
- expl += "<br><ul>" + currentScenario.flags.map(f => `<li>${f}</li>`).join('') + "</ul>";
- }
- fbText.innerHTML = `You marked this as <b>${choice.toUpperCase()}</b>. It was actually <b>${currentScenario.type.toUpperCase()}</b>.<br><br>${expl}`;
- document.getElementById('feedback-overlay').classList.add('active');
- };
+var legitBios=[
+  "Coffee, code and late-night playlists ☕🎧",
+  "Cybersecurity student | Always learning",
+  "Just sharing pics and random thoughts 📸",
+  "Tech, games and good vibes only 🎮",
+  "Here for the memes and the music 🎵",
+  "Final year CS student | Nerd 🤓",
+  "Travelling the world one city at a time ✈️",
+  "Gym rat 💪 | Foodie 🍕 | Dog person 🐶",
+  "Photographer & digital art enthusiast 🎨",
+  "Life is short, buy the concert ticket 🎶"
+];
 
- window.nextRoundAction = function() {
- document.getElementById('feedback-overlay').classList.remove('active');
- currentRound++;
- playNextRound();
- };
+var shadyBios=[
+  "FREE MONEY LINK BELOW 👇",
+  "Crypto giveaways daily 🚀 – DM me",
+  "Huge rewards – new page, follow for prizes",
+  "Investment tips that ACTUALLY work 💰",
+  "Click the link in bio for free stuff",
+  "Making £1000/day from home – ask me how"
+];
 
- window.openProfile = function() {
- if (!currentProfile) return;
- document.getElementById('prof-initial').innerText = currentProfile.initial;
- document.getElementById('prof-avatar').style.backgroundColor = currentProfile.color;
- document.getElementById('prof-name').innerText = currentProfile.name;
- document.getElementById('prof-username').innerText = currentProfile.username;
- document.getElementById('prof-bio').innerText = currentProfile.bio;
- document.getElementById('prof-posts').innerText = currentProfile.posts;
- document.getElementById('prof-followers').innerText = currentProfile.followers;
- document.getElementById('prof-mutuals').innerText = currentProfile.mutuals;
- document.getElementById('prof-joined-text').innerText = currentProfile.joined;
- document.getElementById('profile-overlay').classList.add('active');
- };
+var usernameExtras=["_real","_official","__x","99","_xo","_2026","_here","__dm","_help","_ig"];
 
- window.closeProfile = function() { document.getElementById('profile-overlay').classList.remove('active'); };
- window.closeLinkWarning = function() { document.getElementById('link-warning-overlay').classList.remove('active'); };
+function generateProfile(name, type){
+  var isAttacker = type==='phishing';
+  var isSusp = type==='suspicious';
+  var isBrandNew = isAttacker && Math.random()>0.35;
+  var bio = isAttacker
+    ? shadyBios[Math.floor(Math.random()*shadyBios.length)]
+    : legitBios[Math.floor(Math.random()*legitBios.length)];
+  var suffix = isAttacker
+    ? usernameExtras[Math.floor(Math.random()*usernameExtras.length)]
+    : (Math.random()>.5 ? Math.floor(Math.random()*99).toString() : '');
+  return {
+    name: name,
+    initial: name.charAt(0),
+    username: '@' + name.toLowerCase() + suffix,
+    color: 'hsl(' + Math.floor(Math.random()*360) + ',65%,50%)',
+    followers: isBrandNew ? Math.floor(Math.random()*40)
+                : isSusp ? Math.floor(Math.random()*200)+20
+                : Math.floor(Math.random()*1800)+100,
+    mutuals: isAttacker ? 0 : isSusp ? Math.floor(Math.random()*3) : Math.floor(Math.random()*18)+2,
+    joined: isBrandNew ? "Joined this week"
+              : isAttacker ? "Joined 2 weeks ago"
+              : "Joined " + (Math.floor(Math.random()*5)+1) + " year(s) ago",
+    posts: isBrandNew ? Math.floor(Math.random()*3)
+             : isAttacker ? Math.floor(Math.random()*8)+1
+             : Math.floor(Math.random()*400)+15,
+    bio: bio
+  };
+}
 
- document.getElementById('chat-area').addEventListener('click', function(e) {
- if (e.target.classList.contains('chat-link')) {
- e.preventDefault();
- document.getElementById('link-warning-overlay').classList.add('active');
- }
- });
+/* ===================== GAME STATE ===================== */
+var currentRound=0, score=0, mistakes=[], roundQueue=[], currentScenario=null, currentProfile=null;
+var roundStartTime=0, totalResponseTime=0, usedNames=[];
+var isPaused=false, pauseStartedAt=0;
+var hintsRemaining=3;
 
- function showScorecard() {
- document.getElementById('game-screen').classList.remove('active');
- document.getElementById('hud').style.display = 'none';
- document.getElementById('end-screen').classList.add('active');
- document.getElementById('final-score').innerText = `${score}/10`;
- const avgTimeSecs = totalResponseTime / 1000 / 10;
- document.getElementById('final-speed').innerText = avgTimeSecs < 4 ? "Fast ⚡" : avgTimeSecs > 7 ? "Slow 🐢" : "Medium";
- const badge = document.getElementById('final-badge');
- if (score >= 9) { badge.innerText = "🟢 Security Expert"; badge.style.color = "#4ade80"; badge.style.borderColor = "#4ade80"; }
- else if (score >= 6) { badge.innerText = "🟡 Cautious User"; badge.style.color = "#facc15"; badge.style.borderColor = "#facc15"; }
- else if (score >= 3) { badge.innerText = "🔴 At Risk"; badge.style.color = "#f87171"; badge.style.borderColor = "#f87171"; }
- else { badge.innerText = "🚨 Highly Vulnerable"; badge.style.color = "#ef4444"; badge.style.borderColor = "#ef4444"; }
- const mList = document.getElementById('mistakes-list');
- if (mistakes.length === 0) {
- mList.innerHTML = "<div class='m-txt' style='color:#4ade80; text-align:center;'>Perfect score! No mistakes made.</div>";
- document.querySelector('.mistakes-title').style.display = 'none';
- } else {
- document.querySelector('.mistakes-title').style.display = 'block';
- mList.innerHTML = mistakes.map(m => `<div class="m-item"><div class="m-rnd">Round ${m.round} - Missed ${m.expected.toUpperCase()}</div><div class="m-txt">"${m.scenario.text}"</div></div>`).join('');
- }
- }
- </script>
+function shuffle(arr){
+  var a=arr.slice();
+  for(var i=a.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var t=a[i];a[i]=a[j];a[j]=t;
+  }
+  return a;
+}
+
+/* ===================== START ===================== */
+function startSimulation(totalRounds){
+  totalRounds = totalRounds || 10;
+  document.getElementById('start-screen').classList.remove('active');
+  document.getElementById('end-screen').classList.remove('active');
+  document.getElementById('game-screen').classList.add('active');
+  document.getElementById('hud').style.display='block';
+  isPaused=false; document.body.classList.remove('paused');
+
+  currentRound=0; score=0; mistakes=[]; totalResponseTime=0; hintsRemaining=3;
+
+  if(totalRounds<=10){
+    var safe  = scenarios.filter(function(s){return s.type==='safe';});
+    var susp  = scenarios.filter(function(s){return s.type==='suspicious';});
+    var phish = scenarios.filter(function(s){return s.type==='phishing';});
+    roundQueue = shuffle(
+      shuffle(safe).slice(0,4).concat(shuffle(susp).slice(0,3)).concat(shuffle(phish).slice(0,3))
+    );
+  } else {
+    roundQueue = shuffle(scenarios).slice(0, Math.min(totalRounds, scenarios.length));
+  }
+
+  usedNames = shuffle(namesList).slice(0, roundQueue.length);
+  document.getElementById('hud-total').innerText = roundQueue.length;
+  updateHUD();
+  document.getElementById('header-status-text').innerText = 'Active now';
+  playNextRound();
+}
+
+function updateHUD(){
+  document.getElementById('hud-round').innerText  = Math.min(currentRound+1, roundQueue.length);
+  document.getElementById('hud-score').innerText  = score;
+  document.getElementById('hud-hints').innerText  = hintsRemaining;
+}
+
+/* ===================== ROUND ===================== */
+function playNextRound(){
+  if(currentRound >= roundQueue.length){ showScorecard(); return; }
+  currentScenario = roundQueue[currentRound];
+  currentProfile  = generateProfile(usedNames[currentRound], currentScenario.type);
+
+  updateHUD();
+  document.getElementById('header-initial').innerText = currentProfile.initial;
+  document.getElementById('header-avatar').style.backgroundColor = currentProfile.color;
+  document.getElementById('header-name').innerText   = currentProfile.name;
+
+  var chatArea = document.getElementById('chat-area');
+  chatArea.innerHTML = '<div class="timestamp">Today</div>';
+  document.getElementById('decision-panel').classList.remove('active');
+
+  var typing = document.getElementById('typing');
+  typing.classList.add('active');
+
+  setTimeout(function(){
+    typing.classList.remove('active');
+    var msg = document.createElement('div');
+    msg.className = 'message-bubble message-received';
+    msg.innerHTML = currentScenario.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="#" class="chat-link">$1</a>');
+    chatArea.appendChild(msg);
+    var spacer = document.createElement('div');
+    spacer.className = 'chat-bottom-spacer';
+    chatArea.appendChild(spacer);
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    var phone = document.getElementById('phone');
+    phone.classList.add('vibrate');
+    setTimeout(function(){ phone.classList.remove('vibrate'); }, 280);
+
+    if(!isPaused){
+      document.getElementById('decision-panel').classList.add('active');
+    }
+    roundStartTime = Date.now();
+  }, 1200 + Math.random()*900);
+}
+
+/* ===================== DECISION ===================== */
+function makeDecision(choice){
+  if(isPaused) return;
+  totalResponseTime += Date.now() - roundStartTime;
+  var correct = choice === currentScenario.type;
+  if(correct) score++;
+  else mistakes.push({round:currentRound+1, expected:currentScenario.type, scenario:currentScenario, picked:choice});
+  document.getElementById('decision-panel').classList.remove('active');
+
+  var fbTitle = document.getElementById('fb-title');
+  var fbText  = document.getElementById('fb-text');
+
+  if(correct){
+    fbTitle.innerHTML = '✅ Nice catch!';
+    fbTitle.style.color = '#15803d';
+  } else {
+    fbTitle.innerHTML = '❌ Watch out!';
+    fbTitle.style.color = '#dc2626';
+  }
+
+  var expl = currentScenario.explanation || '';
+  if(currentScenario.flags && currentScenario.flags.length){
+    expl += '<ul>' + currentScenario.flags.map(function(f){ return '<li>'+f+'</li>'; }).join('') + '</ul>';
+  }
+  fbText.innerHTML = 'You marked this as <b>' + choice.toUpperCase() + '</b>. Correct answer: <b>' + currentScenario.type.toUpperCase() + '</b>.<br><br>' + expl;
+  document.getElementById('feedback-overlay').classList.add('active');
+}
+
+function nextRoundAction(){
+  document.getElementById('feedback-overlay').classList.remove('active');
+  currentRound++;
+  playNextRound();
+}
+
+/* ===================== PAUSE ===================== */
+function togglePause(){
+  var overlay = document.getElementById('pause-overlay');
+  if(!isPaused){
+    isPaused = true;
+    pauseStartedAt = Date.now();
+    overlay.classList.add('active');
+    document.getElementById('decision-panel').classList.remove('active');
+    document.getElementById('header-status-text').innerText = 'Paused';
+  } else {
+    isPaused = false;
+    overlay.classList.remove('active');
+    document.getElementById('header-status-text').innerText = 'Active now';
+    if(roundStartTime && pauseStartedAt){
+      roundStartTime += Date.now() - pauseStartedAt;
+    }
+    if(currentScenario){
+      document.getElementById('decision-panel').classList.add('active');
+    }
+  }
+}
+
+/* ===================== HINTS ===================== */
+function useHint(){
+  if(!currentScenario) return;
+  var overlay    = document.getElementById('hint-overlay');
+  var titleEl    = document.getElementById('hint-title');
+  var textEl     = document.getElementById('hint-text');
+
+  if(hintsRemaining <= 0){
+    titleEl.innerText = 'No hints left';
+    textEl.innerHTML  = 'You have used all 3 hints for this run.<br><br>Look for:<br>• Unexpected links or shortened URLs<br>• Urgent language or threats<br>• Requests for money or personal details';
+    overlay.classList.add('active');
+    return;
+  }
+  hintsRemaining--;
+  updateHUD();
+  titleEl.innerHTML = '💡 Hint <span class="hint-pill">' + hintsRemaining + ' left</span>';
+
+  var flags = currentScenario.flags || [];
+  var html  = '';
+  if(flags.length > 0){
+    html = 'Look for these red flags in this message:<ul>' + flags.map(function(f){ return '<li>'+f+'</li>'; }).join('') + '</ul>';
+  } else {
+    if(currentScenario.type === 'safe'){
+      html = 'This looks like normal conversation.<br><br>Ask yourself:<br>• Is anyone asking for money, codes, or passwords?<br>• Is there any link or urgency?<br>If not, it may be SAFE.';
+    } else if(currentScenario.type === 'suspicious'){
+      html = 'Something feels slightly off here.<br><br>Ask yourself:<br>• Would you verify this using another channel?<br>• Is there a link or new contact you don\'t fully trust yet?';
+    } else {
+      html = 'This has strong phishing vibes.<br><br>Look for:<br>• Too-good-to-be-true offers<br>• Threats about losing access or money<br>• Links to unknown websites asking you to log in or pay';
+    }
+  }
+  textEl.innerHTML = html;
+  overlay.classList.add('active');
+}
+
+function closeHint(){ document.getElementById('hint-overlay').classList.remove('active'); }
+
+/* ===================== PROFILE ===================== */
+function openProfile(){
+  if(!currentProfile) return;
+  document.getElementById('prof-initial').innerText   = currentProfile.initial;
+  document.getElementById('prof-avatar').style.backgroundColor = currentProfile.color;
+  document.getElementById('prof-name').innerText      = currentProfile.name;
+  document.getElementById('prof-username').innerText  = currentProfile.username;
+  document.getElementById('prof-bio').innerText       = currentProfile.bio;
+  document.getElementById('prof-posts').innerText     = currentProfile.posts;
+  document.getElementById('prof-followers').innerText = currentProfile.followers;
+  document.getElementById('prof-mutuals').innerText   = currentProfile.mutuals;
+  document.getElementById('prof-joined-text').innerText = currentProfile.joined;
+  document.getElementById('profile-overlay').classList.add('active');
+}
+function closeProfile(){ document.getElementById('profile-overlay').classList.remove('active'); }
+function closeLinkWarning(){ document.getElementById('link-warning-overlay').classList.remove('active'); }
+
+document.getElementById('chat-area').addEventListener('click', function(e){
+  if(e.target.classList.contains('chat-link')){
+    e.preventDefault();
+    document.getElementById('link-warning-overlay').classList.add('active');
+  }
+});
+
+/* ===================== SCORECARD ===================== */
+function getSpeedRank(avg){
+  if(avg < 3)  return {label:'Lightning ⚡⚡', rank:'S', cls:'s-rank-S'};
+  if(avg < 5)  return {label:'Fast ⚡',        rank:'A', cls:'s-rank-A'};
+  if(avg < 8)  return {label:'Medium',         rank:'B', cls:'s-rank-B'};
+  if(avg < 12) return {label:'Slow 🐢',        rank:'C', cls:'s-rank-C'};
+  return            {label:'Very Slow 🐢',     rank:'D', cls:'s-rank-D'};
+}
+
+function showScorecard(){
+  document.getElementById('game-screen').classList.remove('active');
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('end-screen').classList.add('active');
+  isPaused = false;
+
+  var total = roundQueue.length;
+  var pct   = score / total;
+  document.getElementById('final-score').innerText = score + '/' + total;
+
+  var avgSecs = totalResponseTime / 1000 / total;
+  var speed   = getSpeedRank(avgSecs);
+  document.getElementById('final-speed').innerText = avgSecs.toFixed(1) + 's';
+  var rankEl = document.getElementById('final-rank');
+  rankEl.innerText = speed.rank + '-Rank';
+  rankEl.className = 's-val ' + speed.cls;
+
+  var badge = document.getElementById('final-badge');
+  if(pct >= 0.9){ badge.innerText='🟢 Security Expert'; badge.style.color='#4ade80'; badge.style.borderColor='rgba(74,222,128,.3)'; }
+  else if(pct >= 0.7){ badge.innerText='🟡 Cautious User'; badge.style.color='#facc15'; badge.style.borderColor='rgba(250,204,21,.3)'; }
+  else if(pct >= 0.5){ badge.innerText='🔴 At Risk'; badge.style.color='#f87171'; badge.style.borderColor='rgba(248,113,113,.3)'; }
+  else { badge.innerText='🚨 Highly Vulnerable'; badge.style.color='#ef4444'; badge.style.borderColor='rgba(239,68,68,.3)'; }
+
+  var mList  = document.getElementById('mistakes-list');
+  var mTitle = document.querySelector('.mistakes-title');
+  if(mistakes.length === 0){
+    mTitle.style.display = 'none';
+    mList.innerHTML = '<div style="color:#4ade80;text-align:center;font-weight:700;padding:14px 0">🎯 Perfect score! No mistakes made.</div>';
+  } else {
+    mTitle.style.display = 'block';
+    mList.innerHTML = mistakes.map(function(m){
+      var flags    = m.scenario.flags || [];
+      var flagsHtml = flags.length ? '<ul>' + flags.map(function(f){ return '<li>'+f+'</li>'; }).join('') + '</ul>' : '';
+      var short    = m.scenario.text.length > 88 ? m.scenario.text.substring(0,88)+'…' : m.scenario.text;
+      return '<div class="m-item">'
+        + '<div class="m-rnd">Round ' + m.round + ' – You picked <b>' + m.picked.toUpperCase() + '</b>, correct: <b>' + m.expected.toUpperCase() + '</b></div>'
+        + '<div class="m-txt">"' + short + '"</div>'
+        + '<div class="m-why"><b>Why ' + m.expected.toUpperCase() + ':</b><br>' + m.scenario.explanation + flagsHtml + '</div>'
+        + '</div>';
+    }).join('');
+  }
+}
+
+function goToMenu(){
+  document.getElementById('end-screen').classList.remove('active');
+  document.getElementById('start-screen').classList.add('active');
+}
+</script>
 </body>
 </html>
